@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Boats Against the Current: a Zelda-style adventure through The Great Gatsby built around evidence, summary and theme.">
+<style>html{color-scheme:dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Boats Against the Current</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Pixelify+Sans:wght@400;500;700&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: an NES-proportioned game screen in an Art Deco frame; dialogue boxes sit inside the screen; journal and writing desk open as windows */
+:root{
+  --bg:#0b0f0c; --panel:#141a16; --panel2:#1d2620; --line:#3a4a3e;
+  --ink:#f3ecd6; --muted:#b2b8a6; --gold:#d8b24a; --green:#5fe08a; --rose:#e07a52; --blue:#6aa8e8; --good:#9fd08a; --bad:#ef8a72;
+  --f-deco:"Limelight","Didot",Georgia,serif;
+  --f-px:"Press Start 2P","Courier New",monospace;
+  --f-body:"Pixelify Sans","Trebuchet MS",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:17px;line-height:1.4;padding-block:14px 28px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+.wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px}
+.logo{font-family:var(--f-deco);font-size:clamp(20px,4vw,30px);color:var(--gold);margin:0;letter-spacing:.04em;font-weight:400}
+.logo small{display:block;font-family:var(--f-body);font-size:14px;color:var(--muted);letter-spacing:0}
+.frame{position:relative;padding:10px;background:linear-gradient(135deg,#2a2412,#0b0f0c 40%,#2a2412);border:2px solid var(--gold);box-shadow:inset 0 0 0 4px var(--bg),inset 0 0 0 5px var(--gold)}
+.screen{position:relative;background:#000}
+canvas#game{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
+.dlg{position:absolute;left:3%;right:3%;bottom:3%;background:#000;border:3px solid #fff;box-shadow:0 0 0 3px #000;padding:10px 12px 12px;font-family:var(--f-body);font-size:clamp(14px,2.4vw,18px);line-height:1.45;min-height:28%}
+.dlg .who{font-family:var(--f-px);font-size:clamp(8px,1.4vw,10px);color:var(--gold);margin-bottom:6px;letter-spacing:.05em}
+.dlg .txt{white-space:pre-wrap}
+.dlg .more{position:absolute;right:10px;bottom:6px;font-family:var(--f-px);font-size:10px;color:var(--gold);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.dlg .more{animation:none}}
+.dlg .opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.dlg .opt{text-align:left;background:#111;border:2px solid #666;padding:6px 9px;cursor:pointer;font-size:inherit}
+.dlg .opt:hover,.dlg .opt:focus-visible{border-color:var(--gold);outline:none}
+.dlg .opt .k{font-family:var(--f-px);font-size:9px;color:var(--gold);margin-right:8px}
+.dlg .fb b{color:var(--good)}
+.dlg .fb b.no{color:var(--bad)}
+.toast{position:absolute;left:50%;top:24%;transform:translateX(-50%);background:rgba(0,0,0,.88);border:2px solid var(--gold);padding:6px 12px;max-width:86%;text-align:center;font-size:clamp(13px,2.2vw,16px);pointer-events:none}
+.toast b{font-family:var(--f-px);font-size:9px;color:var(--gold);display:block;margin-bottom:3px}
+.objective{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:2px solid var(--line);padding:8px 12px}
+.objective .tag{font-family:var(--f-px);font-size:9px;color:var(--bg);background:var(--gold);padding:4px 6px;flex:none;margin-top:2px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.pbtn{background:var(--panel2);border:2px solid var(--ink);box-shadow:0 3px 0 #000;padding:6px 11px;cursor:pointer;font-size:15px;line-height:1.2}
+.pbtn:hover{background:var(--line)}
+.pbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+.pbtn:focus-visible,.chip:focus-visible,.card:focus-visible,.choice:focus-visible,.tab:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.pbtn.gold{background:var(--gold);color:#1a1404;border-color:#fff1c0}
+.pbtn[disabled]{opacity:.45;cursor:not-allowed}
+.help{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--muted);font-size:14px}
+.help kbd{font-family:var(--f-px);font-size:8px;background:var(--panel2);border:1px solid var(--line);padding:2px 5px;color:var(--ink)}
+.pad{display:none;justify-content:space-between;align-items:center;gap:12px;user-select:none;-webkit-user-select:none}
+.dpad{display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,50px);gap:3px}
+.dpad button,.ab button{background:var(--panel2);border:2px solid var(--ink);font-family:var(--f-px);font-size:12px;touch-action:none}
+.dpad button:active,.ab button:active{background:var(--gold);color:#1a1404}
+.ab{display:flex;gap:12px}
+.ab button{width:64px;height:64px;border-radius:50%;border-color:var(--gold)}
+@media (pointer:coarse){.pad{display:flex}}
+
+.win{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(780px,calc(100% - 24px));max-height:min(90vh,780px);background:var(--panel);border:2px solid var(--gold);box-shadow:inset 0 0 0 3px var(--panel),inset 0 0 0 4px var(--gold),0 10px 0 4px #000;display:flex;flex-direction:column}
+.win-head{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:2px solid var(--line)}
+.win-head .t{flex:1;min-width:0}
+.win-title{font-family:var(--f-deco);font-size:22px;color:var(--gold);line-height:1.2}
+.win-sub{color:var(--muted);font-size:14px}
+.win-body{overflow-y:auto;padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px 0;border-bottom:2px solid var(--line)}
+.tab{background:transparent;border:2px solid var(--line);border-bottom:none;padding:6px 10px;cursor:pointer;font-size:15px}
+.tab[aria-selected="true"]{background:var(--panel2);border-color:var(--gold);color:var(--gold)}
+.h{font-family:var(--f-px);font-size:9px;color:var(--gold);letter-spacing:.05em;line-height:1.7;margin:6px 0 0}
+.muted{color:var(--muted)}
+.note{color:var(--muted);font-size:14px;margin:0}
+q.ev{quotes:none;display:block;border-left:3px solid var(--gold);padding:2px 0 2px 10px;color:#fff6dd}
+.claim{border:2px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--panel2)}
+.claim.done{border-color:var(--good)}
+.claim .ct{font-size:18px}
+.claim .src{font-size:14px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:transparent;border:2px solid var(--line);padding:4px 8px;cursor:pointer;font-size:14px;text-align:left;max-width:100%}
+.chip[aria-pressed="true"]{border-color:var(--gold);background:#2a2814;color:#fff6dd}
+.chip.v[aria-pressed="true"]{border-color:var(--blue);background:#14202e}
+.chip[disabled]{cursor:default}
+.fbk{font-size:15px}
+.fbk b{color:var(--good)}
+.fbk b.no{color:var(--bad)}
+.evlist{display:flex;flex-direction:column;gap:6px}
+.evlist small{color:var(--muted)}
+.mgrid{overflow-x:auto}
+.mgrid table{border-collapse:collapse;min-width:520px;width:100%}
+.mgrid th{font-family:var(--f-px);font-size:8px;color:var(--muted);padding:5px;text-align:center}
+.mgrid th.l{text-align:left}
+.mgrid td{border:1px solid var(--line);text-align:center;height:26px;font-size:15px}
+.mgrid td.l{text-align:left;padding:0 8px;white-space:nowrap}
+.dot{display:inline-block;width:12px;height:12px}
+.mentries{display:flex;flex-direction:column;gap:6px}
+.ment{border-left:4px solid var(--line);padding:2px 0 2px 10px}
+.ment small{color:var(--muted)}
+.cards{display:flex;flex-direction:column;gap:6px}
+.card{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--panel2);border:2px solid var(--line);padding:8px 10px;cursor:pointer;font-size:16px}
+.card .n{font-family:var(--f-px);font-size:10px;color:var(--bg);background:var(--line);min-width:24px;height:24px;display:grid;place-items:center;flex:none}
+.card[aria-pressed="true"]{border-color:var(--gold)}
+.card[aria-pressed="true"] .n{background:var(--gold)}
+.card.bad{border-color:var(--bad)}
+.choices{display:flex;flex-direction:column;gap:6px}
+.choice{text-align:left;background:var(--panel2);border:2px solid var(--line);padding:8px 10px;cursor:pointer;font-size:16px}
+.choice:hover{border-color:var(--gold)}
+.choice.right{border-color:var(--good)}
+.choice.wrong{border-color:var(--bad);opacity:.7}
+.summary{background:#f1e6c6;color:#2a2012;padding:14px 16px;font-family:Georgia,"Times New Roman",serif;font-size:17px;line-height:1.55;border:1px solid #c9b27a}
+.summary .cap{font-family:var(--f-deco);font-size:18px;color:#6a4a1a;display:block;margin-bottom:4px}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{font-family:var(--f-px);font-size:8px;padding:4px 6px;border:1px solid var(--line);color:var(--muted)}
+.steps span.on{border-color:var(--gold);color:var(--gold)}
+.chs{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px}
+.copybox{width:100%;background:#0a0d0b;border:2px solid var(--line);color:var(--ink);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <h1 class="logo">Boats Against the Current<small>A Great Gatsby adventure, chapter by chapter</small></h1>
+    <div class="btns"><button class="pbtn" id="btnJournal" type="button">Journal</button><button class="pbtn" id="btnTitle" type="button">Menu</button><button class="pbtn" id="btnSound" type="button" aria-pressed="false">Sound off</button></div>
+  </div>
+  <div class="frame"><div class="screen">
+    <canvas id="game" width="256" height="224" tabindex="0" aria-label="Game screen. Arrow keys move, E talks, Space swings your pen."></canvas>
+    <div class="toast" id="toast" hidden></div>
+    <div class="dlg" id="dlg" hidden role="dialog" aria-live="polite"><div class="who" id="dWho"></div><div class="txt" id="dTxt"></div><div class="opts" id="dOpts"></div><div class="more" id="dMore">▼</div></div>
+  </div></div>
+  <div class="objective"><span class="tag" id="objTag">CH. I</span><span id="objText">Loading…</span></div>
+  <div class="pad" aria-label="Touch controls">
+    <div class="dpad"><span></span><button type="button" data-k="ArrowUp" aria-label="Up">▲</button><span></span><button type="button" data-k="ArrowLeft" aria-label="Left">◀</button><span></span><button type="button" data-k="ArrowRight" aria-label="Right">▶</button><span></span><button type="button" data-k="ArrowDown" aria-label="Down">▼</button><span></span></div>
+    <div class="ab"><button type="button" data-k="pen" aria-label="Swing pen">B<br>PEN</button><button type="button" data-k="act" aria-label="Talk or look">A<br>TALK</button></div>
+  </div>
+  <div class="help"><span><kbd>ARROWS</kbd>/<kbd>WASD</kbd> walk</span><span><kbd>E</kbd>/<kbd>ENTER</kbd> talk, look, continue</span><span><kbd>SPACE</kbd> swing your pen at rumors</span><span><kbd>J</kbd> journal</span><span><kbd>1</kbd>–<kbd>3</kbd> answer</span></div>
+</div>
+
+<div class="win" id="titleWin" role="dialog" aria-labelledby="tTitle">
+  <div class="win-body" style="gap:12px">
+    <div class="win-title" id="tTitle" style="font-size:30px">Boats Against the Current</div>
+    <p style="margin:0">You are Nick Carraway, newly arrived in West Egg in the summer of 1922. Walk Long Island and New York, talk with the people Nick meets, and collect the evidence he will need to tell this story truthfully. Each chapter unlocks only when you've written up the last one at your desk.</p>
+    <p class="note" style="margin:0">Gold <b style="color:var(--gold)">!</b> marks your next task. Rumors drift across Gatsby's lawn; pop them with your pen, then decide in your Case File which claims the novel supports. Your progress saves in this browser.</p>
+    <div class="row" id="tBtns"></div>
+    <div id="tJump" hidden>
+      <div class="h">START AT A CHAPTER</div>
+      <p class="note">For classes already partway through the novel. Earlier chapters are filled in automatically, without the practice.</p>
+      <div class="chs" id="tChs"></div>
+    </div>
+  </div>
+</div>
+
+<div class="win" id="jWin" hidden role="dialog" aria-labelledby="jTitle">
+  <div class="win-head"><div class="t"><div class="win-title" id="jTitle">Nick's Journal</div><div class="win-sub" id="jSub"></div></div><button class="pbtn" data-close type="button">Close</button></div>
+  <div class="tabs" role="tablist" id="jTabs"></div>
+  <div class="win-body" id="jBody"></div>
+</div>
+
+<div class="win" id="wWin" hidden role="dialog" aria-labelledby="wTitle">
+  <div class="win-head"><div class="t"><div class="win-title" id="wTitle">Writing desk</div><div class="win-sub" id="wSub"></div></div><button class="pbtn" data-close type="button">Not yet</button></div>
+  <div class="win-body" id="wBody"></div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+// ================= CONTENT: The Great Gatsby (1925, public domain) =================
+const EVID={
+ e1:{ch:1,who:'Nick',q:`Whenever you feel like criticizing any one... just remember that all the people in this world haven't had the advantages that you've had.`},
+ e2:{ch:1,who:'Nick',q:`I'm inclined to reserve all judgments.`},
+ e3:{ch:1,who:'Daisy',q:`I hope she'll be a fool—that's the best thing a girl can be in this world, a beautiful little fool.`},
+ e4:{ch:1,who:'Nick, of Tom',q:`It was a body capable of enormous leverage—a cruel body.`},
+ e5:{ch:1,who:'Nick',q:`a single green light, minute and far away, that might have been the end of a dock`},
+ e6:{ch:2,who:'Nick',q:`a valley of ashes—a fantastic farm where ashes grow like wheat into ridges and hills and grotesque gardens`},
+ e7:{ch:2,who:'Nick',q:`The eyes of Doctor T. J. Eckleburg are blue and gigantic—their retinas are one yard high.`},
+ e8:{ch:2,who:'Catherine',q:`It's really his wife that's keeping them apart. She's a Catholic, and they don't believe in divorce.`},
+ e9:{ch:2,who:'Nick',q:`Daisy was not a Catholic, and I was a little shocked at the elaborateness of the lie.`},
+ e10:{ch:2,who:'Nick',q:`Making a short deft movement, Tom Buchanan broke her nose with his open hand.`},
+ e11:{ch:3,who:'A party guest',q:`Somebody told me they thought he killed a man once.`},
+ e12:{ch:3,who:'Owl Eyes',q:`It's a bona-fide piece of printed matter. It fooled me.`},
+ e13:{ch:3,who:'Nick',q:`It was one of those rare smiles with a quality of eternal reassurance in it.`},
+ e14:{ch:3,who:'Nick',q:`Every one suspects himself of at least one of the cardinal virtues, and this is mine: I am one of the few honest people that I have ever known.`},
+ e15:{ch:3,who:'Nick, of Jordan',q:`She was incurably dishonest.`},
+ e16:{ch:4,who:'Gatsby',q:`I am the son of some wealthy people in the Middle West—all dead now. I was brought up in America but educated at Oxford.`},
+ e17:{ch:4,who:'Nick and Gatsby',q:`"What part of the Middle West?" I inquired casually. "San Francisco."`},
+ e18:{ch:4,who:'Gatsby',q:`Here's another thing I always carry. A souvenir of Oxford days.`},
+ e19:{ch:4,who:'Gatsby',q:`He's the man who fixed the World's Series back in 1919.`},
+ e20:{ch:4,who:'Jordan',q:`Gatsby bought that house so that Daisy would be just across the bay.`},
+ e21:{ch:5,who:'Nick',q:`his head leaned back so far that it rested against the face of a defunct mantelpiece clock`},
+ e22:{ch:5,who:'Daisy',q:`It makes me sad because I've never seen such—such beautiful shirts before.`},
+ e23:{ch:5,who:'Nick',q:`Now it was again a green light on a dock. His count of enchanted objects had diminished by one.`},
+ e24:{ch:5,who:'Nick',q:`not through her own fault, but because of the colossal vitality of his illusion`},
+ e25:{ch:6,who:'Nick',q:`James Gatz—that was really, or at least legally, his name.`},
+ e26:{ch:6,who:'Nick',q:`The truth was that Jay Gatsby of West Egg, Long Island, sprang from his Platonic conception of himself.`},
+ e27:{ch:6,who:'Gatsby',q:`Can't repeat the past? Why of course you can!`},
+ e28:{ch:6,who:'Nick',q:`His parents were shiftless and unsuccessful farm people.`},
+ e29:{ch:7,who:'Gatsby',q:`Her voice is full of money.`},
+ e30:{ch:7,who:'Gatsby',q:`It was in nineteen-nineteen, I only stayed five months. That's why I can't really call myself an Oxford man.`},
+ e31:{ch:7,who:'Tom',q:`He and this Wolfsheim bought up a lot of side-street drug-stores here and in Chicago and sold grain alcohol over the counter.`},
+ e32:{ch:7,who:'Daisy',q:`Oh, you want too much! I love you now—isn't that enough? I can't help what's past.`},
+ e33:{ch:7,who:'Nick and Gatsby',q:`"Was Daisy driving?" "Yes," he said after a moment, "but of course I'll say I was."`},
+ e34:{ch:7,who:'Nick',q:`The "death car" as the newspapers called it, didn't stop.`},
+ e35:{ch:8,who:'Nick',q:`They're a rotten crowd. You're worth the whole damn bunch put together.`},
+ e36:{ch:8,who:'Nick',q:`I've always been glad I said that. It was the only compliment I ever gave him, because I disapproved of him from beginning to end.`},
+ e37:{ch:8,who:'Wilson and Michaelis',q:`"God sees everything," repeated Wilson. "That's an advertisement," Michaelis assured him.`},
+ e38:{ch:9,who:'Henry C. Gatz',q:`Jimmy was bound to get ahead. He always had some resolves like this or something.`},
+ e39:{ch:9,who:'Tom',q:`That fellow had it coming to him. He threw dust into your eyes just like he did in Daisy's.`},
+ e40:{ch:9,who:'Nick',q:`They were careless people, Tom and Daisy—they smashed up things and creatures and then retreated back into their money or their vast carelessness.`},
+ e41:{ch:9,who:'Nick',q:`So we beat on, boats against the current, borne back ceaselessly into the past.`}
+};
+
+const VERDICTS=['Supported','Contradicted','Partly true','Ambiguous'];
+const CLAIMS={
+ C5:{who:'Catherine',ch:2,text:`Daisy's religion is what keeps her from divorcing Tom.`,src:'e8',ans:['Contradicted'],ev:['e9'],need:1,
+  why:`Nick says plainly that Daisy was not a Catholic and calls Catherine's story an elaborate lie. Explicit evidence settles it.`},
+ C3:{who:'Party guests',ch:3,text:`Gatsby once killed a man, or was a German spy.`,src:'e11',ans:['Ambiguous','Partly true'],ev:['e19','e31'],need:1,
+  why:`No one ever proves the murder or the spying. But Gatsby's friendship with the man who fixed the World Series, and Tom's discovery of the bootlegging drug-stores, show the rumors sensed something real: his money is criminal. The text leaves the specific charges open.`},
+ C4:{who:'Nick',ch:3,text:`"I am one of the few honest people that I have ever known."`,src:'e14',ans:['Ambiguous','Partly true'],ev:['e2','e36','e35'],need:2,
+  why:`Nick reports others' lies faithfully, yet he claims to reserve judgment and later says he "disapproved of him from beginning to end" while praising Gatsby above everyone. A narrator this divided is not simply honest or dishonest. Readers have to weigh his account.`},
+ C1:{who:'Gatsby',ch:4,text:`Gatsby is "the son of some wealthy people in the Middle West."`,src:'e16',ans:['Contradicted'],ev:['e17','e25','e28'],need:2,
+  why:`His geography slips at once ("San Francisco"), and Chapter 6 reveals he was born James Gatz to "shiftless and unsuccessful farm people." He invented the wealthy family.`},
+ C2:{who:'Gatsby',ch:4,text:`Gatsby was "educated at Oxford."`,src:'e16',ans:['Partly true'],ev:['e18','e30'],need:2,
+  why:`The photograph supports some connection to Oxford, but in Chapter 7 Gatsby admits he stayed only five months, an opportunity given to officers after the war. True in a narrow sense, misleading as he first told it.`},
+ C6:{who:'Wilson and the newspapers',ch:7,text:`Gatsby was driving the "death car" that killed Myrtle.`,src:'e34',ans:['Contradicted','Ambiguous'],ev:['e33'],need:1,
+  why:`Gatsby tells Nick that Daisy was driving and that he will take the blame. The only evidence is Gatsby's word to Nick, but nothing in the novel contradicts it, and it explains his vigil outside Daisy's house.`}
+};
+
+const MOTIFS={green:{name:'The green light',col:'#5fe08a'},eyes:{name:'Eckleburg\'s eyes',col:'#6aa8e8'},ashes:{name:'The valley of ashes',col:'#b8b4aa'},cars:{name:'Cars and driving',col:'#f2c94c'},time:{name:'Clocks and time',col:'#e8a0b0'},heat:{name:'Weather and seasons',col:'#e07a52'}};
+const THEMES={
+ dream:{name:'The self-made dream and its limits',stmt:`Fitzgerald shows that the dream of remaking yourself through wealth and will is powerful but ultimately cannot reach what it longs for.`},
+ careless:{name:'Wealth breeds carelessness',stmt:`Fitzgerald shows that the very rich are careless with other people's lives, and that those without money pay for it.`},
+ past:{name:'The past cannot be repeated',stmt:`Fitzgerald shows that no amount of longing or money can bring back the past, however hard we strain toward it.`},
+ appear:{name:'Appearances hide emptiness',stmt:`Fitzgerald shows that the glittering surfaces of the Jazz Age hide moral emptiness, with no one truly watching or judging.`}
+};
+
+// helpers to keep the chapter data compact
+const L=(who,t)=>[who,t];
+const CH=[null,
+ {n:1,title:'Chapter I',sub:'West Egg and East Egg',
+  beats:[
+   {id:'1a',k:'talk',who:'daisy',scr:'s00',x:6,y:4,hint:'Cross the bay path west to East Egg and visit your cousin Daisy at the red-and-white mansion.',
+    lines:[L('NICK','My cousin Daisy lives across the bay in East Egg, in a red-and-white Georgian mansion.'),L('DAISY','I\'m p-paralyzed with happiness. Nick, you remind me of a—of a rose, an absolute rose.'),L('DAISY','When my daughter was born, I wept, and I said: "I hope she\'ll be a fool—that\'s the best thing a girl can be in this world, a beautiful little fool."')],
+    ev:['e3'],ask:{q:`What does Daisy's wish for her daughter imply?`,o:[`That in her world a woman who sees the truth only suffers, so not knowing is safer.`,`That she expects her daughter to be unintelligent.`,`That she hopes her daughter becomes famous for her looks.`],a:0,why:`Daisy is not insulting her daughter. Read implicitly, the line is bitter: Daisy knows things (like Tom's affair) that a "fool" would be spared.`}},
+   {id:'1b',k:'talk',who:'tom',scr:'s00',x:9,y:3,hint:'Talk with Tom Buchanan on his lawn.',
+    lines:[L('NICK','Tom has changed since New Haven. Now he\'s a sturdy, straw-haired man with a hard mouth and a supercilious manner.'),L('NICK','It was a body capable of enormous leverage—a cruel body.'),L('TOM','Civilization\'s going to pieces. I\'ve gotten to be a terrible pessimist about things.')],ev:['e4']},
+   {id:'1c',k:'talk',who:'jordan',scr:'s00',x:3,y:6,hint:'Find Jordan Baker, the golfer, on the Buchanans\' lawn.',
+    lines:[L('JORDAN','You mean to say you don\'t know? I thought everybody knew. Tom\'s got some woman in New York.'),L('NICK','I said nothing. My father taught me to hold back. I\'m inclined to reserve all judgments.')],ev:['e2']},
+   {id:'1d',k:'talk',who:'gatsby0',scr:'s01',x:12,y:3,hint:'Back at the bay, someone is standing on the dock at the West Egg end. Go and look.',
+    lines:[L('NICK','A figure had emerged from the shadow of my neighbor\'s mansion. He stretched out his arms toward the dark water in a curious way.'),L('NICK','I glanced seaward and distinguished nothing except a single green light, minute and far away, that might have been the end of a dock.'),L('NICK','When I looked once more for Gatsby, he had vanished.')],
+    ev:['e5'],motif:{m:'green',line:`the green light first appears as something Gatsby reaches for and cannot touch`,themes:['dream','past']},
+    ask:{q:`What does Gatsby's gesture toward the light suggest, even before we know what it is?`,o:[`He longs for something far away that he cannot reach.`,`He is signalling to a boat.`,`He is admiring the view of East Egg.`],a:0,why:`We don't yet know the light is on Daisy's dock. The gesture alone, arms stretched toward something "minute and far away," establishes longing and distance.`}}
+  ],
+  sum:{keys:[`Nick rents a small house in West Egg, beside the huge mansion of a man named Gatsby.`,`Nick dines with his cousin Daisy, her husband Tom, and Jordan Baker in East Egg.`,`Jordan tells Nick that Tom has a woman in New York.`,`Back home, Nick sees Gatsby alone, reaching toward a green light across the bay.`],
+   decoys:[`Tom introduces Nick to Gatsby at dinner.`,`Daisy and Tom argue openly in front of their guests about Gatsby.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`The Buchanans' glamorous life hides an unhappy marriage, while Gatsby's longing for something across the water opens a mystery.`,`Nick moves to West Egg because he wants to meet Gatsby.`,`Jordan's gossip causes Gatsby to go out to his dock.`],a:0,why:`The first answer links the details by contrast and setup: a polished surface over trouble, then a new mystery. The others invent causes the text never gives.`}}},
+
+ {n:2,title:'Chapter II',sub:'The valley of ashes',
+  beats:[
+   {id:'2a',k:'look',obj:'billboard',scr:'s11',x:9,y:1,name:'The billboard',hint:'Take the motor road south and west into the valley of ashes. Look up at the billboard.',
+    lines:[L('NICK','This is a valley of ashes—a fantastic farm where ashes grow like wheat into ridges and hills and grotesque gardens.'),L('NICK','Above it, the eyes of Doctor T. J. Eckleburg are blue and gigantic—their retinas are one yard high. Some oculist set them there to fatten his practice, then sank down himself into eternal blindness.')],
+    ev:['e6','e7'],motif:{m:'eyes',line:`Eckleburg's huge, faded eyes brood over the wasteland like a god no one believes in`,themes:['appear','careless']},
+    ask:{q:`What might the eyes suggest, staring over this wasteland?`,o:[`A kind of absent judgment: something seems to watch, but it is only an old advertisement.`,`That the doctor is still a successful businessman.`,`That Nick is being followed.`],a:0,why:`The eyes belong to no one. They "brood" over a place the wealthy drive past, which invites readers to ask whether anyone judges what happens here.`}},
+   {id:'2b',k:'talk',who:'wilson',scr:'s11',x:5,y:4,hint:'Talk with George Wilson outside his garage.',
+    lines:[L('NICK','Tom stopped the car at a garage. The owner, George Wilson, was a blond, spiritless man, anaemic, and faintly handsome.'),L('WILSON','When are you going to sell me that car?'),L('NICK','The ashes cover everything here, even Wilson\'s dark suit and pale hair.')],
+    motif:{m:'ashes',line:`the valley of ashes is the waste left behind by the wealthy world that speeds through it`,themes:['careless']},
+    ask:{q:`What does the valley of ashes represent, placed between the Eggs and the city?`,o:[`The poverty and waste produced by the wealthy world that drives through it.`,`A peaceful farming town.`,`The place where Gatsby made his fortune.`],a:0,why:`It sits on the road between wealth and wealth. The people who live there, like Wilson, are covered in the leftovers.`}},
+   {id:'2c',k:'talk',who:'catherine',scr:'s10',x:4,y:2,hint:'Go on to New York. At Tom and Myrtle\'s apartment, talk with Myrtle\'s sister Catherine.',
+    lines:[L('CATHERINE','Neither of them can stand the person they\'re married to.'),L('CATHERINE','It\'s really his wife that\'s keeping them apart. She\'s a Catholic, and they don\'t believe in divorce.'),L('NICK','Daisy was not a Catholic, and I was a little shocked at the elaborateness of the lie.')],ev:['e8','e9'],claim:'C5'},
+   {id:'2d',k:'talk',who:'myrtle',scr:'s10',x:6,y:2,hint:'Talk with Myrtle Wilson at the party.',
+    lines:[L('MYRTLE','Daisy! Daisy! Daisy! I\'ll say it whenever I want to! Daisy! Dai—'),L('NICK','Making a short deft movement, Tom Buchanan broke her nose with his open hand.')],ev:['e10'],
+    ask:{q:`What does Tom's reaction reveal about him?`,o:[`He believes he controls who may say Daisy's name, and his wealth lets him use violence without consequence.`,`He is protecting Daisy's reputation out of love.`,`He is drunk and doesn't know what he's doing.`],a:0,why:`"Short deft movement" suggests practiced, controlled cruelty, the "cruel body" from Chapter 1. Tom keeps Myrtle in a separate compartment from Daisy and punishes her for crossing it.`}}
+  ],
+  sum:{keys:[`Tom takes Nick to Wilson's garage in the valley of ashes to meet his mistress, Myrtle.`,`Tom, Myrtle and Nick go to an apartment in New York for a party.`,`Myrtle's sister Catherine claims Daisy's religion prevents a divorce, which Nick knows is a lie.`,`When Myrtle shouts Daisy's name, Tom breaks her nose.`],
+   decoys:[`Myrtle confesses the affair to her husband at the garage.`,`Nick drives Gatsby's car into the city.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`Moving from the ash heaps to the apartment, the chapter shows Tom using his power over people with less, and the lies and violence that power allows.`,`Catherine's lie causes Tom to hit Myrtle.`,`The trip to New York is mainly about introducing Gatsby's business.`],a:0,why:`The details build one idea: Tom's world runs on lies and force, and it is the poorer people around him who are hurt.`}}},
+
+ {n:3,title:'Chapter III',sub:'The party',
+  beats:[
+   {id:'3a',k:'talk',who:'chauffeur',scr:'s02',x:4,y:8,hint:'A chauffeur in robin\'s-egg blue is waiting outside your cottage in West Egg.',
+    lines:[L('NICK','A chauffeur in a uniform of robin\'s-egg blue crossed my lawn with a surprisingly formal note from his employer.'),L('CHAUFFEUR','Mr. Gatsby would be honored if you would attend his "little party" tonight.'),L('NICK','I was one of the few guests who had actually been invited.')],item:'Invitation'},
+   {id:'3b',k:'rumors',scr:'s02',count:3,hint:'Gatsby\'s lawn is full of guests and rumors. Pop the rumors with your pen (Space) to hear what people claim.',
+    rumors:[`Somebody told me they thought he killed a man once.`,`He was a German spy during the war.`,`I'll bet he killed a man.`,`He was in the American army during the war.`],
+    lines:[L('NICK','Nobody seemed to know Gatsby. Everybody had a theory about him.'),L('NICK','The rumors told me more about the guests than about my host. Still, I wrote them down.')],ev:['e11'],claim:'C3'},
+   {id:'3c',k:'talk',who:'owleyes',scr:'s02',x:10,y:3,hint:'Find the stout man with owl-eyed spectacles near the house. He has been in the library.',
+    lines:[L('OWL EYES','Absolutely real—have pages and everything. I thought they\'d be a nice durable cardboard.'),L('OWL EYES','It\'s a bona-fide piece of printed matter. It fooled me. Knew when to stop, too. Didn\'t cut the pages.')],ev:['e12'],
+    ask:{q:`Why is Owl Eyes so surprised that the books are real?`,o:[`He expected Gatsby's whole world to be a fake front, like a stage set. Real books with uncut pages suggest a convincing performance that no one actually reads.`,`He is amazed that Gatsby can afford books.`,`He wants to borrow one.`],a:0,why:`The books are real but unread. The detail implies Gatsby's world is built to look right, which is not the same as being what it seems.`}},
+   {id:'3d',k:'talk',who:'gatsby',scr:'s02',x:6,y:3,hint:'Talk with the young man in the white suit who says he served in your division in the war.',
+    lines:[L('NICK','He smiled understandingly—much more than understandingly. It was one of those rare smiles with a quality of eternal reassurance in it.'),L('GATSBY','I\'m Gatsby. I thought you knew, old sport. I\'m afraid I\'m not a very good host.'),L('NICK','His elaborate formality of speech just missed being absurd.')],ev:['e13']},
+   {id:'3e',k:'look',obj:'crash',scr:'s02',x:11,y:8,name:'A car in the ditch',hint:'As the party ends, there is a commotion near the road. Go and see.',
+    lines:[L('NICK','In the ditch beside the road, right side up but violently shorn of one wheel, rested a new coupé which had left Gatsby\'s drive not two minutes before.'),L('OWL EYES','I know very little about driving—next to nothing. It happened, and that\'s all I know.'),L('NICK','The real driver was another guest, too drunk to notice that a wheel had come off.')],
+    motif:{m:'cars',line:`a drunken car crash ends the party: glamour gives way to carelessness, and no one takes responsibility`,themes:['careless','appear']},
+    ask:{q:`What does the crash after the party suggest?`,o:[`Beneath the glamour, the party runs on recklessness, and no one takes responsibility for the damage.`,`Gatsby's roads are poorly built.`,`Owl Eyes is secretly a good driver.`],a:0,why:`Everyone denies driving. Hold on to this image: cars and careless driving return at the novel's turning point.`}},
+   {id:'3f',k:'talk',who:'jordan',scr:'s02',x:3,y:4,hint:'Talk with Jordan Baker. Over the summer, Nick gets to know her better.',
+    lines:[L('NICK','Jordan had left a borrowed car out in the rain with the top down, and then lied about it. She was incurably dishonest.'),L('NICK','I am slow-thinking and full of interior rules. Every one suspects himself of at least one of the cardinal virtues, and this is mine: I am one of the few honest people that I have ever known.')],ev:['e15','e14'],claim:'C4'}
+  ],
+  sum:{keys:[`Nick is formally invited to one of Gatsby's lavish parties.`,`Guests trade wild rumors about Gatsby, though few have ever met him.`,`Nick talks with a man who turns out to be Gatsby himself.`,`As the party ends, a drunk guest crashes a car outside the mansion.`],
+   decoys:[`Gatsby gives a speech welcoming all his guests.`,`Daisy secretly attends the party.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`The rumors, the real-but-unread books, and the crash all suggest Gatsby's world is a glittering show over confusion and carelessness.`,`The invitation causes the car crash.`,`Gatsby throws the party mainly to meet Nick.`],a:0,why:`Each detail shows a gap between surface and reality, which is how the chapter's scenes build on one another.`}},
+  theme:{q:`How do the rumors, Owl Eyes' books and the crash build an idea together?`,o:[`Each shows a gap between surface and reality, developing the idea that Gatsby's world is a performance hiding emptiness and recklessness.`,`They show that Gatsby is a generous host.`,`They prove that Gatsby is a criminal.`],a:0,themes:['appear','careless'],why:`Three different elements (gossip, a library, a car) make the same move, revealing what lies behind a glittering front. That repetition is how a theme develops.`}},
+
+ {n:4,title:'Chapter IV',sub:'The road to the city',
+  beats:[
+   {id:'4a',k:'talk',who:'gatsby',scr:'s12',x:11,y:3,hint:'Gatsby is waiting on the motor road in his enormous cream-colored car. Talk with him.',
+    lines:[L('NICK','His car was a rich cream color, bright with nickel, swollen here and there in its monstrous length.'),L('GATSBY','I\'ll tell you God\'s truth. I am the son of some wealthy people in the Middle West—all dead now. I was brought up in America but educated at Oxford.'),L('NICK','"What part of the Middle West?" I inquired casually. "San Francisco."'),L('GATSBY','Here\'s another thing I always carry. A souvenir of Oxford days. And this medal—from Montenegro.')],
+    ev:['e16','e17','e18'],claim:'C1',claim2:'C2',item:'War medal',
+    motif:{m:'cars',line:`Gatsby's gleaming, monstrous car is his self-invention on wheels, built to impress`,themes:['dream','appear']},
+    ask:{q:`Why does Nick start to doubt Gatsby here?`,o:[`Gatsby calls San Francisco part of the Middle West and rushes through "educated at Oxford." Details that don't fit suggest he is inventing parts of his story.`,`Gatsby refuses to tell Nick anything about his past.`,`Gatsby admits that he made his money in crime.`],a:0,why:`Nick never says "he's lying." He lets the inconsistency speak. Watching for slips like this is reading implicitly.`}},
+   {id:'4b',k:'talk',who:'cop',scr:'s12',x:13,y:5,hint:'A motorcycle policeman has pulled Gatsby over for speeding. Talk with him.',
+    lines:[L('NICK','Gatsby took a white card from his wallet and waved it before the man\'s eyes.'),L('POLICEMAN','Right you are. Know you next time, Mr. Gatsby. Excuse me!'),L('NICK','I had to wonder what kind of man could talk his way past the law with a card.')]},
+   {id:'4c',k:'talk',who:'wolfsheim',scr:'s10',x:4,y:6,hint:'In New York, Gatsby takes you to lunch in a cellar on Forty-second Street. Meet his friend Meyer Wolfsheim.',
+    lines:[L('WOLFSHEIM','I understand you\'re looking for a business gonnegtion.'),L('NICK','After he left, Gatsby told me: "He\'s the man who fixed the World\'s Series back in 1919."'),L('NICK','It never occurred to me that one man could start to play with the faith of fifty million people.')],ev:['e19']},
+   {id:'4d',k:'talk',who:'jordan',scr:'s10',x:12,y:2,hint:'Meet Jordan for tea at the Plaza Hotel. She has a story about Daisy.',
+    lines:[L('JORDAN','In 1917, in Louisville, Daisy was in love with a young officer named Jay Gatsby. Then he went to war, and she married Tom.'),L('JORDAN','The night before the wedding she held a letter and cried, "Tell \'em all Daisy\'s change\' her mine!"'),L('JORDAN','Gatsby bought that house so that Daisy would be just across the bay. He wants you to invite her to tea, and let him come over.')],ev:['e20'],
+    ask:{q:`How does Jordan's story change what we know about the green light?`,o:[`The light is on Daisy's dock. Gatsby's mansion and parties have all been aimed at reaching her.`,`It shows that Daisy has been waiting for Gatsby.`,`It means the light was installed by Tom.`],a:0,why:`Chapter 1 gave the image without its meaning. Chapter 4 supplies the meaning, so the motif develops by being explained later.`}}
+  ],
+  sum:{keys:[`Gatsby drives Nick to the city and tells a life story that doesn't quite add up.`,`In New York, Gatsby introduces Meyer Wolfsheim, the man who fixed the World Series.`,`Jordan tells Nick that Gatsby and Daisy were in love in Louisville before the war.`,`Gatsby asks Nick to invite Daisy to tea so the two can meet again.`],
+   decoys:[`Gatsby admits to Nick that he never went to Oxford.`,`The policeman arrests Gatsby for speeding.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`Gatsby's shaky story and criminal friends raise doubts, but Jordan's story gives his wealth a purpose: everything was built to win back Daisy.`,`Wolfsheim's crimes are why Daisy married Tom.`,`The chapter proves Gatsby has told the truth about his past.`],a:0,why:`The chapter moves from suspicion to motive. That shift is the relationship among its details.`}}},
+
+ {n:5,title:'Chapter V',sub:'Tea at Nick\'s',
+  beats:[
+   {id:'5a',k:'talk',who:'gatsby',scr:'s02',x:2,y:9,hint:'It is raining. Gatsby has come to your cottage, terribly nervous, to wait for Daisy.',
+    lines:[L('NICK','Gatsby leaned against the mantelpiece in a strained counterfeit of perfect ease.'),L('NICK','His head leaned back so far that it rested against the face of a defunct mantelpiece clock. The clock tottered, and he caught it with trembling fingers.'),L('GATSBY','I\'m sorry about the clock.')],
+    ev:['e21'],motif:{m:'time',line:`the broken clock nearly falls as Gatsby tries to resume a love five years old: time can't be stopped or reset`,themes:['past']},
+    ask:{q:`What does the near-fall of the "defunct" clock suggest?`,o:[`Gatsby is trying to stop or turn back time, and the clock's wobble hints that he can't.`,`Nick's cottage is poorly furnished.`,`Gatsby is clumsy because he's had too much to drink.`],a:0,why:`A stopped clock at the exact moment Gatsby tries to recover the past is a symbol working implicitly.`}},
+   {id:'5b',k:'talk',who:'daisy',scr:'s02',x:4,y:9,hint:'Daisy has arrived. Later, Gatsby shows her his mansion. Talk with her.',
+    lines:[L('NICK','He took out a pile of shirts and began throwing them, one by one, before us: shirts of sheer linen and thick silk and fine flannel.'),L('DAISY','They\'re such beautiful shirts. It makes me sad because I\'ve never seen such—such beautiful shirts before.')],ev:['e22'],
+    ask:{q:`Why might Daisy cry over the shirts?`,o:[`The heaped-up wealth makes the lost years real. She is overwhelmed by what might have been, and the display moves her more than words do.`,`She is jealous that Gatsby dresses better than Tom.`,`The shirts remind her that she needs to go shopping.`],a:0,why:`The text never says why she cries. Students have to infer, which is exactly where the standard asks you to go.`}},
+   {id:'5c',k:'look',obj:'dockview',scr:'s01',x:10,y:3,name:'The end of Gatsby\'s dock',hint:'Walk out to the end of Gatsby\'s dock and look across the bay.',
+    lines:[L('GATSBY','If it wasn\'t for the mist we could see your home across the bay. You always have a green light that burns all night at the end of your dock.'),L('NICK','Possibly it had occurred to him that the colossal significance of that light had now vanished forever.'),L('NICK','Now it was again a green light on a dock. His count of enchanted objects had diminished by one.')],
+    ev:['e23'],motif:{m:'green',line:`with Daisy beside him, the light shrinks to "a green light on a dock": reaching the dream diminishes it`,themes:['dream','past']},
+    ask:{q:`Why does the light lose its "colossal significance"?`,o:[`Now that Daisy is beside him, the dream can't stay a distant ideal. Reaching it makes it smaller.`,`The light has been turned off.`,`Gatsby has stopped loving Daisy.`],a:0,why:`Compare with Chapter 1: the same image now means something different. That change across chapters is theme development.`}},
+   {id:'5d',k:'talk',who:'klipspringer',scr:'s02',x:8,y:3,hint:'Gatsby\'s strange lodger Klipspringer is playing the piano. Talk with him.',
+    lines:[L('KLIPSPRINGER','In the morning, in the evening, ain\'t we got fun—'),L('NICK','There must have been moments even that afternoon when Daisy tumbled short of his dreams—not through her own fault, but because of the colossal vitality of his illusion.')],ev:['e24']}
+  ],
+  sum:{keys:[`Nick hosts tea so that Gatsby can meet Daisy again.`,`The reunion is painfully awkward at first, then Gatsby glows with happiness.`,`Gatsby shows Daisy his mansion and his shirts, and she weeps.`,`Nick senses that no real Daisy could match the illusion Gatsby has built.`],
+   decoys:[`Daisy promises to leave Tom for Gatsby.`,`Tom arrives at the cottage and confronts Gatsby.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`Gatsby finally reaches Daisy, but the clock, the shirts and the green light show that having the dream makes it shrink.`,`The tea is a failure, and Gatsby gives up on Daisy.`,`Daisy only cares about Gatsby's shirts.`],a:0,why:`The chapter is the high point of Gatsby's dream, and every detail undercuts it a little.`}},
+  theme:{q:`How do the clock and the green light work together in Chapter 5?`,o:[`Both show that time and reality press in on Gatsby's dream: the past can't be reset, and the ideal shrinks when reached.`,`Both show that Gatsby is rich enough to buy anything.`,`Both are decorations that don't matter to the story.`],a:0,themes:['past','dream'],why:`Two objects, one idea. When elements reinforce each other like this, the theme grows more complex.`}},
+
+ {n:6,title:'Chapter VI',sub:'James Gatz',
+  beats:[
+   {id:'6a',k:'look',obj:'gatsbydoor',scr:'s02',x:7,y:2,name:'Gatsby\'s front door',hint:'A reporter came knocking at Gatsby\'s door. Go there. Nick has learned the truth about Gatsby\'s past.',
+    lines:[L('NICK','James Gatz—that was really, or at least legally, his name. His parents were shiftless and unsuccessful farm people.'),L('NICK','At seventeen he rowed out to warn the millionaire Dan Cody\'s yacht of a storm, and gave Cody a new name: Jay Gatsby.'),L('NICK','The truth was that Jay Gatsby of West Egg, Long Island, sprang from his Platonic conception of himself.')],
+    ev:['e25','e28','e26'],
+    ask:{q:`What does "sprang from his Platonic conception of himself" imply?`,o:[`Gatsby invented an ideal version of himself and then lived as if it were real.`,`Gatsby was a philosopher.`,`Gatsby was born into a famous family.`],a:0,why:`Plato's "ideal forms" are perfect ideas. Gatsby is his own ideal, which is also why the real Daisy can never quite fit his dream.`}},
+   {id:'6b',k:'talk',who:'tom',scr:'s02',x:9,y:4,hint:'Tom Buchanan has ridden over to Gatsby\'s on horseback. Talk with him.',
+    lines:[L('TOM','I may be old-fashioned in my ideas, but women run around too much these days to suit me.'),L('TOM','A lot of these newly rich people are just big bootleggers, you know.')]},
+   {id:'6c',k:'rumors',scr:'s02',count:2,hint:'Daisy and Tom come to a party. Pop the rumors drifting across the lawn.',
+    rumors:[`He's a big bootlegger, you know.`,`One time he killed a man who found out he was nephew to von Hindenburg.`,`He's got a fortune from drug-stores, I hear.`],
+    lines:[L('NICK','The rumors were even wilder now. With Tom here, they had a sharper edge.')]},
+   {id:'6d',k:'talk',who:'daisy',scr:'s02',x:5,y:3,hint:'Talk with Daisy at the party.',
+    lines:[L('NICK','She was appalled by West Egg, appalled by its raw vigor and by the too obtrusive fate that herded its inhabitants along a short-cut from nothing to nothing.'),L('DAISY','Who is this Gatsby anyhow? Some big bootlegger?')]},
+   {id:'6e',k:'talk',who:'gatsby',scr:'s02',x:6,y:5,hint:'After the guests leave, talk with Gatsby.',
+    lines:[L('NICK','You can\'t repeat the past.'),L('GATSBY','Can\'t repeat the past? Why of course you can! I\'m going to fix everything just the way it was before.')],
+    ev:['e27'],motif:{m:'time',line:`Gatsby insists he can repeat the past, the clock's warning turned into his creed`,themes:['past','dream']},
+    ask:{q:`How does Gatsby's line connect to what you've just learned about James Gatz?`,o:[`A man who invented himself believes anything can be remade, even the past. That belief now looks dangerously fragile.`,`It proves Gatsby has a time machine.`,`It shows Gatsby wants to forget Daisy.`],a:0,why:`Elements interacting: the backstory (self-invention) explains the belief (the past can be repeated).`}}
+  ],
+  sum:{keys:[`Nick reveals that Gatsby was born James Gatz and reinvented himself after meeting Dan Cody.`,`Tom stops by Gatsby's house and later comes to a party with Daisy.`,`Daisy is unimpressed by the party and its guests.`,`Gatsby insists to Nick that he can repeat the past with Daisy.`],
+   decoys:[`Gatsby admits to Daisy that he is poor.`,`Wolfsheim warns Gatsby to stay away from Tom.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`Learning that "Jay Gatsby" is an invention, and seeing Daisy reject his world, makes his belief that he can repeat the past look fragile.`,`Tom's visit causes Gatsby to change his name.`,`Daisy loves the party, so Gatsby is sure of her.`],a:0,why:`The backstory and the party work against Gatsby's confidence. Placing them side by side is the chapter's design.`}}},
+
+ {n:7,title:'Chapter VII',sub:'The hottest day',
+  beats:[
+   {id:'7a',k:'talk',who:'gatsby',scr:'s00',x:7,y:4,hint:'It is the hottest day of the summer. Join Gatsby at the Buchanans\' in East Egg.',
+    lines:[L('NICK','The next day was broiling, almost the last, certainly the warmest, of the summer.'),L('NICK','"She\'s got an indiscreet voice," I remarked. "It\'s full of—" I hesitated.'),L('GATSBY','Her voice is full of money.')],
+    ev:['e29'],motif:{m:'heat',line:`on the hottest day of summer, tempers and secrets boil over`,themes:['careless']},
+    ask:{q:`What does Gatsby mean by "Her voice is full of money"?`,o:[`Daisy's charm can't be separated from wealth. To love Daisy is partly to love what money sounds like.`,`Daisy talks about money all the time.`,`Daisy has been paying Gatsby.`],a:0,why:`An implicit truth Gatsby states almost by accident: his dream of Daisy is tangled up with his dream of wealth.`}},
+   {id:'7b',k:'talk',who:'tom',scr:'s10',x:12,y:2,hint:'In a stifling suite at the Plaza Hotel, Tom confronts Gatsby. Talk with Tom.',
+    lines:[L('TOM','Self-control! I suppose the latest thing is to sit back and let Mr. Nobody from Nowhere make love to your wife.'),L('GATSBY','It was in nineteen-nineteen, I only stayed five months. That\'s why I can\'t really call myself an Oxford man.'),L('TOM','He and this Wolfsheim bought up a lot of side-street drug-stores here and in Chicago and sold grain alcohol over the counter.')],ev:['e30','e31']},
+   {id:'7c',k:'talk',who:'daisy',scr:'s10',x:11,y:2,hint:'Talk with Daisy in the Plaza suite.',
+    lines:[L('GATSBY','Just tell him the truth—that you never loved him.'),L('DAISY','Oh, you want too much! I love you now—isn\'t that enough? I can\'t help what\'s past.'),L('NICK','I just remembered that today\'s my birthday. Thirty—the promise of a decade of loneliness.')],ev:['e32'],
+    ask:{q:`What does "I can't help what's past" reveal?`,o:[`Daisy won't erase her years with Tom the way Gatsby needs. His dream depends on rewriting a past she refuses to deny.`,`Daisy has forgotten Gatsby completely.`,`Daisy is pretending in order to hurt Tom.`],a:0,why:`This is where Gatsby's belief from Chapter 6 (you can repeat the past) breaks against Daisy's reality.`}},
+   {id:'7d',k:'talk',who:'michaelis',scr:'s11',x:7,y:5,hint:'Something has happened in the valley of ashes. Talk with Michaelis, who saw it.',
+    lines:[L('NICK','Myrtle Wilson ran out into the road and was struck by a car driving back from the city.'),L('MICHAELIS','It was a big yellow car. New. It came out of the dusk and was gone.'),L('NICK','The "death car" as the newspapers called it, didn\'t stop.')],
+    ev:['e34'],claim:'C6',motif:{m:'cars',line:`the "death car" kills Myrtle and doesn't stop: carelessness, last seen in a ditch, becomes deadly`,themes:['careless']},
+    ask:{q:`Look back at the crash in Chapter 3. How has the car motif changed?`,o:[`A careless accident that hurt no one has become a careless killing: the same image, now with deadly cost.`,`It hasn't changed. Cars are just how people travel.`,`It shows that Gatsby is a bad driver.`],a:0,why:`Tracing a motif across chapters shows how a theme intensifies. Here it is carelessness, from comic to tragic.`}},
+   {id:'7e',k:'talk',who:'gatsby',scr:'s00',x:10,y:8,hint:'That night Gatsby is standing in the dark outside the Buchanans\' house. Talk with him.',
+    lines:[L('NICK','"Was Daisy driving?" "Yes," he said after a moment, "but of course I\'ll say I was."'),L('NICK','Through the window I saw Daisy and Tom at the kitchen table. There was an unmistakable air of natural intimacy about the picture.'),L('NICK','I left him standing there in the moonlight—watching over nothing.')],ev:['e33']}
+  ],
+  sum:{keys:[`On the hottest day of summer, the group drives into New York, with Tom and Gatsby trading cars.`,`At the Plaza Hotel, Tom exposes Gatsby's past and Daisy wavers between the two men.`,`Driving Gatsby's car home, Daisy strikes and kills Myrtle and does not stop.`,`Gatsby keeps watch outside the Buchanans' house while Daisy stays with Tom.`],
+   decoys:[`Nick drives the yellow car back from the city.`,`Tom tells the police that Gatsby was driving.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`The heat and the confrontation shatter Gatsby's illusion, and the crash shows who pays for the carelessness of the rich.`,`Tom's accusations cause Daisy to crash on purpose.`,`The chapter mainly shows that the Plaza is too hot.`],a:0,why:`Cause and consequence: exposure leads to flight, flight to the crash, and the crash falls on Myrtle, someone without money.`}},
+  theme:{q:`How do the heat, the "death car" and Daisy's choice build on each other?`,o:[`Pressure (the heat) breaks open the conflict, carelessness (the car) turns it fatal, and Daisy's retreat to Tom shows the rich protecting themselves.`,`They show that summer in New York is dangerous.`,`They show Daisy finally choosing Gatsby.`],a:0,themes:['careless','dream'],why:`Three elements, each building on the last, produce the novel's climax and its sharpest statement about wealth.`}},
+
+ {n:8,title:'Chapter VIII',sub:'The pool',
+  beats:[
+   {id:'8a',k:'talk',who:'gatsby',scr:'s02',x:12,y:4,hint:'At dawn, Gatsby is still waiting for Daisy to call. Talk with him by his pool.',
+    lines:[L('NICK','He told me the true story of Louisville: how he loved Daisy when he had nothing, and let her believe he was her equal.'),L('NICK','I called across the lawn: "They\'re a rotten crowd. You\'re worth the whole damn bunch put together."'),L('NICK','I\'ve always been glad I said that. It was the only compliment I ever gave him, because I disapproved of him from beginning to end.')],
+    ev:['e35','e36'],
+    ask:{q:`Is Nick's compliment consistent with his claim to "reserve all judgments" and be honest?`,o:[`Not simply. He praises Gatsby above everyone while saying he disapproved of him from beginning to end. His feelings are divided, and that complicates trusting him.`,`Yes. Nick never judges anyone.`,`No. Nick is clearly lying about everything.`],a:0,why:`This is a textual inconsistency the standard asks you to attend to. Go update your case file on Nick's honesty.`}},
+   {id:'8b',k:'talk',who:'wilson',scr:'s11',x:5,y:4,hint:'In the valley of ashes, Wilson hasn\'t slept. Talk with him.',
+    lines:[L('WILSON','I spoke to her. I told her she might fool me but she couldn\'t fool God. I took her to the window.'),L('NICK','Behind him, the eyes of Doctor T. J. Eckleburg had just emerged from the dissolving night.'),L('NICK','"God sees everything," repeated Wilson. "That\'s an advertisement," Michaelis assured him.')],
+    ev:['e37'],motif:{m:'eyes',line:`Wilson takes the billboard for God's judgment; Michaelis sees only an advertisement, and the novel won't say who is right`,themes:['appear']},
+    ask:{q:`What is ambiguous about this moment?`,o:[`Wilson sees God's judgment in the eyes, Michaelis sees an ad, and the novel never settles whether anyone is watching.`,`It's clear the billboard is magic.`,`It's clear Wilson is joking.`],a:0,why:`An ambiguity the text deliberately leaves open. A strong reading names both possibilities and what each would mean.`}},
+   {id:'8c',k:'look',obj:'pool',scr:'s02',x:13,y:4,name:'Gatsby\'s pool',hint:'In the afternoon, Gatsby goes for a swim. Go to the pool.',
+    lines:[L('NICK','There was an autumn flavor in the air. Gatsby had not used the pool all summer.'),L('NICK','Wilson, believing the owner of the yellow car had killed Myrtle, found Gatsby there. Then he turned the gun on himself.'),L('NICK','It was after we started with Gatsby toward the house that the gardener saw Wilson\'s body a little way off in the grass, and the holocaust was complete.')],
+    motif:{m:'heat',line:`summer turns to autumn as Gatsby dies: the season of his dream has ended`,themes:['past']},
+    ask:{q:`Why might Fitzgerald set Gatsby's death as summer turns to autumn?`,o:[`The end of summer mirrors the end of the dream. Time has moved on, as Gatsby insisted it couldn't.`,`Pools close in autumn.`,`Autumn is Gatsby's favorite season.`],a:0,why:`The weather motif links back to the clock and "repeat the past": a theme carried by several elements at once.`}}
+  ],
+  sum:{keys:[`Gatsby tells Nick the true story of how he loved and lost Daisy.`,`Nick tells Gatsby that he is worth the whole bunch of them put together.`,`Wilson, grieving, comes to believe the owner of the yellow car killed Myrtle.`,`Wilson shoots Gatsby in his pool and then kills himself.`],
+   decoys:[`Daisy finally telephones Gatsby to say goodbye.`,`Tom confesses to the police that Daisy was driving.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`While Gatsby waits for a call that never comes, Wilson acts on a mistaken belief, so Gatsby dies for Daisy's carelessness.`,`Nick's compliment causes Wilson's attack.`,`Gatsby's death is an accident with no connection to the crash.`],a:0,why:`The tragedy is a chain of mistaken noting and misplaced blame, each detail feeding the next.`}}},
+
+ {n:9,title:'Chapter IX',sub:'Boats against the current',
+  beats:[
+   {id:'9a',k:'talk',who:'henrygatz',scr:'s02',x:6,y:5,hint:'An old man has come from Minnesota. Talk with Gatsby\'s father.',
+    lines:[L('HENRY GATZ','Look here, this is a book he had when he was a boy. On the back he wrote a schedule: Rise from bed 6.00 A.M. Study electricity. Practise elocution, poise and how to attain it.'),L('HENRY GATZ','Jimmy was bound to get ahead. He always had some resolves like this or something.')],ev:['e38'],
+    ask:{q:`What does the boyhood schedule suggest about Gatsby?`,o:[`Long before Daisy, he was building a disciplined, idealized self. The dream of self-improvement is older than his love.`,`He was lazy as a boy.`,`His father forced him to become rich.`],a:0,why:`A detail in the last chapter reframes the whole novel. Gatsby's dream is the American self-made dream, not only a love story.`}},
+   {id:'9b',k:'talk',who:'owleyes',scr:'s02',x:9,y:4,hint:'Almost no one comes to the funeral. Talk with the one guest who does.',
+    lines:[L('NICK','Of all the hundreds who drank at Gatsby\'s parties, only one, the man with the enormous owl-eyed spectacles, came to the grave.'),L('OWL EYES','Why, my God! they used to go there by the hundreds.')]},
+   {id:'9c',k:'talk',who:'tom',scr:'s10',x:8,y:6,hint:'Months later, you meet Tom on Fifth Avenue in New York.',
+    lines:[L('TOM','What if I did tell Wilson whose car it was? That fellow had it coming to him. He threw dust into your eyes just like he did in Daisy\'s.'),L('NICK','They were careless people, Tom and Daisy—they smashed up things and creatures and then retreated back into their money or their vast carelessness.')],
+    ev:['e39','e40'],motif:{m:'cars',line:`"they smashed up things and creatures": the carelessness of the car crashes becomes Nick's final judgment on the rich`,themes:['careless']},
+    ask:{q:`How does "smashed up things and creatures" connect to earlier chapters?`,o:[`It echoes the car crashes (the coupé, the death car). Nick turns the image into a judgment on the rich.`,`It refers to Tom's broken furniture.`,`It has no connection to earlier events.`],a:0,why:`The final chapter names the theme the motif has been building since Chapter 3.`}},
+   {id:'9d',k:'look',obj:'dockview',scr:'s01',x:10,y:3,name:'The end of Gatsby\'s dock',hint:'Before leaving the East, walk out to Gatsby\'s dock one last time.',
+    lines:[L('NICK','Gatsby believed in the green light, the future that year by year recedes before us. It eluded us then, but that\'s no matter. Tomorrow we will run faster, stretch out our arms farther.'),L('NICK','So we beat on, boats against the current, borne back ceaselessly into the past.')],
+    ev:['e41'],motif:{m:'green',line:`the green light becomes everyone's receding future, the dream that pulls us forward and back at once`,themes:['dream','past']},
+    ask:{q:`How has the green light's meaning changed from Chapter 1 to here?`,o:[`It began as Gatsby's private longing for Daisy and ends as a symbol for everyone's striving toward a future that keeps receding.`,`It hasn't changed at all.`,`It now stands for Tom's wealth.`],a:0,why:`Chapter 1, Chapter 5, Chapter 9: the same image, three meanings. That arc is what "development of a theme" looks like.`}}
+  ],
+  sum:{keys:[`Almost no one comes to Gatsby's funeral.`,`Gatsby's father arrives with his son's boyhood schedule for self-improvement.`,`Nick learns that Tom told Wilson who owned the yellow car.`,`Nick leaves the East, thinking of Gatsby's dream and the green light.`],
+   decoys:[`Daisy secretly visits Gatsby's grave.`,`Wolfsheim pays for Gatsby's funeral.`],
+   rel:{q:`Which sentence best explains how these details connect?`,o:[`Gatsby's empty funeral and Tom's confession expose the careless world he tried to join, while his father's schedule shows how long the dream had driven him.`,`Gatsby's father is angry that his son became rich.`,`Tom is sorry for what he did.`],a:0,why:`The final chapter balances judgment (the careless rich) against sympathy (the dreamer). Both are needed for an accurate account.`}}}
+];
+
+const ITEMS={Notebook:'Nick\'s notebook',Invitation:'A formal invitation',['War medal']:'Gatsby\'s medal from Montenegro'};
+
+
+// ================= WORLD =================
+const T=16,W=16,H=11,HUD=48;
+const GRID={s00:[0,0],s01:[1,0],s02:[2,0],s10:[0,1],s11:[1,1],s12:[2,1]};
+const SCR={
+ s00:{name:'East Egg',theme:{wall:'#a8442e',trim:'#f2ece0',roof:'#3a3a48'},
+  map:['RRRRRRRRRR..TT..','MwMwMoMwMw..T...','MwMwMoMwMw......','..............::','..,......,....::','================','....,.......,.::','.T.........T..::','..............::','TT....TT......::','TTTTTTTTTTTTTTTT']},
+ s01:{name:'Courtesy Bay',theme:{},
+  map:['~~~~~~~~~~~~~~~~','~~~~~~~~~~~~~~~~','~~~~~~~~~~~~~~~~','ddddd~~~~~~ddddd','::::d~~~~~~d::::','================','::::::::::::::::',',,..,..,,..,..,.','..T....T....T...','................','TTTTTTTTTTTTTTTT']},
+ s02:{name:'West Egg',theme:{wall:'#e6dab6',trim:'#b8a878',roof:'#5a6a7a'},
+  map:['RRRRRRRRRRRRRR..','MwMwMwMoMwMwMw..','MwMwMwMoMwMwMw.T','......,....,....','..,.......,..pp.','=====.....,..pp.','ffffffffgfffffff','kkk.............','kok.....T...==..','....,......T==..','TTTTTTTTTTTT==TT']},
+ s10:{name:'New York',theme:{},
+  map:['CCCCCCCCCCCCCCCC','CcCcCoCcCcCcoCcC','ssssssssssssssss','ssLsssssssssLsss','================','================','ssssssssssssssss','CcCcoCcCcCcCcCcC','CCCCCCCCCCCCCCCC','CCCCCCCCCCCCCCCC','CCCCCCCCCCCCCCCC']},
+ s11:{name:'The Valley of Ashes',theme:{},
+  map:['AAAaaaaaBBBBaaAA','AaaaaaaaBBBBaaaA','aaGGGGaaaaaaaaaa','aaGGoGPaaaaaaaAa','================','================','aaaaAaaaaaAaaaaa','aAaaaaaaaaaaaaAa','tttttttttttttttt','aaaAaaaaaaaaAaaa','AAAAAAAAAAAAAAAA']},
+ s12:{name:'The Motor Road',theme:{},
+  map:['TTTTTTTTTTTT==TT','T...........==.T','T..,.....,..==.T','T...........==.T','==============.T','==============.T','T....,......,..T','T..T.....T.....T','T..............T','T....,....,....T','TTTTTTTTTTTTTTTT']}
+};
+const SOLID=new Set('RMwoTh~fkACBGPpcL'.split(''));
+const DESK={scr:'s02',x:1,y:8};
+const DECO={s01:[{k:'greenlight',x:5,y:3}],s11:[{k:'billboard',x:8,y:0}]};
+
+const F_=o=>Object.assign({sex:'f',skin:'#f0c8a2',hat:'cloche',hatc:'#3a2a3a'},o);
+const M_=o=>Object.assign({sex:'m',skin:'#e8bd94',hat:'none'},o);
+const PEOPLE={
+ nick:{name:'Nick',look:M_({hair:'#6a4a2a',outfit:'#b9a27a',accent:'#5a4a3a',hat:'boater'})},
+ gatsby:{name:'Jay Gatsby',look:M_({hair:'#8a6a3a',outfit:'#f2efe6',accent:'#e8a0b0'})},
+ gatsby0:{name:'A figure on the dock',look:M_({hair:'#1a1a22',outfit:'#1f2230',accent:'#2a2e40'})},
+ daisy:{name:'Daisy Buchanan',look:F_({hair:'#2a1e16',outfit:'#f6f2ea',accent:'#c9b27a',hatc:'#e8dcc0'})},
+ tom:{name:'Tom Buchanan',look:M_({hair:'#d8b86a',outfit:'#7a5a3a',accent:'#e8dcc0'})},
+ jordan:{name:'Jordan Baker',look:F_({hair:'#c9a03a',outfit:'#e8e2d4',accent:'#3a6a5a',hatc:'#3a6a5a'})},
+ wilson:{name:'George Wilson',look:M_({hair:'#d8c89a',outfit:'#8a8a7a',accent:'#6a6a5a',skin:'#e6cdb6'})},
+ myrtle:{name:'Myrtle Wilson',look:F_({hair:'#5a3a2a',outfit:'#2f3f6a',accent:'#a03a3a',hatc:'#a03a3a'})},
+ catherine:{name:'Catherine',look:F_({hair:'#c94a2a',outfit:'#5a8a5a',accent:'#e8dcc0',hat:'none'})},
+ chauffeur:{name:'Gatsby\'s chauffeur',look:M_({hair:'#3a2a1e',outfit:'#7ab8d8',accent:'#e8f2f8',hat:'cap',hatc:'#5a98b8'})},
+ owleyes:{name:'Owl Eyes',look:M_({hair:'#5a4a3a',outfit:'#4a4a5a',accent:'#c9c0a0',glasses:true})},
+ cop:{name:'A motorcycle policeman',look:M_({hair:'#3a2a1e',outfit:'#2a3a5a',accent:'#c9b27a',hat:'cap',hatc:'#1e2a44'})},
+ wolfsheim:{name:'Meyer Wolfsheim',look:M_({hair:'#6a6a6a',outfit:'#2a2a30',accent:'#8a8a8a'})},
+ klipspringer:{name:'Klipspringer',look:M_({hair:'#c9a25a',outfit:'#6a7a9a',accent:'#e8e2d4'})},
+ michaelis:{name:'Michaelis',look:M_({hair:'#2a2a2a',outfit:'#5a4a3a',accent:'#e8dcc0'})},
+ henrygatz:{name:'Henry C. Gatz',look:M_({hair:'#d3cdc3',outfit:'#4a3a2a',accent:'#7a6a5a',skin:'#e2b892'})},
+ guestA:{name:'A guest',look:F_({hair:'#2a1e16',outfit:'#c94a7a',accent:'#f2c94c',hatc:'#c94a7a'})},
+ guestB:{name:'A guest',look:F_({hair:'#c9a03a',outfit:'#4a9ac9',accent:'#f2e6c9',hatc:'#2a5a8a'})},
+ guestC:{name:'A guest',look:M_({hair:'#3a2a1e',outfit:'#22222a',accent:'#f2ece0'})},
+ passer:{name:'A passer-by',look:M_({hair:'#3a2a1e',outfit:'#5a5a62',accent:'#e8dcc0',hat:'boater'})}
+};
+const AMB={
+ 1:{s02:[{id:'passer',x:9,y:9,line:'"That\'s Gatsby\'s place. Nobody knows much about him."'}]},
+ 2:{s10:[{id:'tom',x:7,y:2,line:'Tom pours another drink. "Myrtle\'s sister is a real character. Don\'t believe everything she says."'}],s11:[{id:'myrtle',x:8,y:5,line:'Myrtle smiles at Tom. "I\'ll take the next train," she whispers. (You\'ll meet her properly in New York.)'}]},
+ 3:{s02:[{id:'guestA',x:12,y:3,line:'"I like to come. I never care what I do, so I always have a good time."'},{id:'guestB',x:1,y:4,line:'"Did you ever meet him? Nobody ever really has."'},{id:'guestC',x:9,y:5,line:'"Champagne, sir? It\'s served in glasses bigger than finger-bowls tonight."'}]},
+ 4:{s10:[{id:'passer',x:9,y:6,line:'"The city seen from the Queensboro Bridge is always the city seen for the first time."'}]},
+ 6:{s02:[{id:'guestA',x:12,y:3,line:'"Is that really Tom Buchanan? With his wife?"'},{id:'guestC',x:2,y:4,line:'"West Egg crowd. All new money."'}]},
+ 7:{s00:[{id:'jordan',x:3,y:6,line:'"It\'s too hot to do anything. Let\'s all go to town."'}]},
+ 8:{s11:[{id:'michaelis',x:7,y:4,line:'Michaelis has been sitting with Wilson all night. "Have you got a church you go to sometimes, George?"'}]},
+ 9:{s10:[{id:'passer',x:4,y:6,line:'"Gatsby? The bootlegger? Shame. Great parties."'}]}
+};
+
+// ================= STATE & SAVES =================
+const KEY='gatsby-quest-v1';
+function fresh(){return {ch:1,beat:0,ev:{},items:['Notebook'],claims:{},motifs:{},asks:{},sums:{},themes:{},synth:null,hp:6,scr:'s02',x:2*16,y:9*16,done:false};}
+let G=fresh();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.ch)return s;}catch(e){}return null;}
+const st={open:'title',dlg:null,toastT:0,pen:0,inv:0,trans:null,rumors:[],popped:0,face:'up',walk:0,moving:false,sound:false,tab:'case',w:null};
+
+// ================= AUDIO =================
+let AC=null;function blip(f,d,type){if(!st.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.value=f;g.gain.setValueAtTime(.06,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g).connect(AC.destination);o.start();o.stop(AC.currentTime+d);}catch(e){}}
+const jingle=()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>blip(f,.12),i*90));};
+
+// ================= DRAWING =================
+const cv=document.getElementById('game'),ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+let K=ctx;const R=(x,y,w,h,c)=>{K.fillStyle=c;K.fillRect(Math.round(x),Math.round(y),w,h);};
+const hash=(a,b)=>(((a*73856093)^(b*19349663))>>>0);
+function shade(hex,f){const n=parseInt(hex.slice(1),16);const g=v=>Math.max(0,Math.min(255,Math.floor(v*(f||.78))));return '#'+[(n>>16)&255,(n>>8)&255,n&255].map(g).map(v=>v.toString(16).padStart(2,'0')).join('');}
+function tile(sid,t,tx,ty,ox,oy){
+  const x=ox+tx*16,y=oy+ty*16,th=SCR[sid].theme,h=hash(tx+sid.charCodeAt(2)*31,ty);
+  const grass=()=>{R(x,y,16,16,'#5aa04a');R(x+(h%12),y+((h>>4)%12),2,1,'#72b85c');R(x+((h>>8)%12),y+((h>>12)%12),1,2,'#4a8a3e');};
+  switch(t){
+   case '.':grass();break;
+   case ',':grass();[[3,4,'#f2e6c9'],[10,9,'#f2c94c'],[6,12,'#e07a96']].forEach(([a,b,c])=>R(x+a,y+b,2,2,c));break;
+   case '=':{const city=sid==='s10';R(x,y,16,16,city?'#46464e':sid==='s11'?'#7a7870':'#a89a7a');if(city&&ty===4)for(let i=0;i<16;i+=8)R(x+i+2,y+15,4,1,'#d8c86a');if(!city){R(x+(h%13),y+((h>>3)%13),1,1,shade(sid==='s11'?'#7a7870':'#a89a7a',.85));}break;}
+   case ':':R(x,y,16,16,'#e8d6a0');R(x+(h%13),y+((h>>3)%13),1,1,'#d4c088');R(x+((h>>6)%13),y+((h>>9)%13),1,1,'#f4e6b8');break;
+   case '~':R(x,y,16,16,'#2f6aa8');break;
+   case 'd':R(x,y,16,16,'#2f6aa8');R(x,y+2,16,12,'#9a6a3a');for(let i=0;i<16;i+=4)R(x+i,y+2,1,12,'#6a4a2a');R(x+2,y+14,2,2,'#5a3a22');R(x+12,y+14,2,2,'#5a3a22');break;
+   case 'T':grass();R(x+6,y+10,4,6,'#5a3a22');R(x+1,y+1,14,11,'#2f7a3a');R(x+3,y,10,2,'#2f7a3a');R(x+3,y+2,5,3,'#4a9a4a');R(x+2,y+10,12,2,'#245f2c');break;
+   case 'R':R(x,y,16,16,th.roof||'#444');for(let i=0;i<16;i+=4)R(x,y+i+3,16,1,shade(th.roof||'#444',.7));R(x,y+15,16,1,'#1a1a1a');if(tx%5===2){R(x+5,y+2,6,8,shade(th.roof||'#444',1.3));R(x+6,y+3,4,6,'#2a3448');}break;
+   case 'M':R(x,y,16,16,th.wall);if(sid==='s00'){for(let i=0;i<16;i+=4)R(x,y+i+3,16,1,shade(th.wall,.8));}R(x,y,1,16,th.trim);R(x+15,y,1,16,th.trim);R(x,y+15,16,1,th.trim);break;
+   case 'w':R(x,y,16,16,th.wall);R(x+3,y+2,10,12,th.trim);R(x+4,y+3,8,10,'#2a3a5a');R(x+7,y+3,2,10,th.trim);R(x+4,y+7,8,1,th.trim);R(x+5,y+4,2,2,'#5a7aa8');break;
+   case 'o':R(x,y,16,16,th.wall||'#8a7a6a');if(sid==='s10'){R(x,y,16,16,'#6a5a5a');}R(x+3,y+1,10,15,th.trim||'#c9b27a');R(x+4,y+2,8,14,'#5a3a22');R(x+10,y+9,1,2,'#d8b24a');if(SCR[sid].map[ty-1]&&SCR[sid].map[ty-1][tx]==='o'){R(x+3,y,10,16,th.trim||'#c9b27a');R(x+4,y,8,16,'#5a3a22');}break;
+   case 'p':R(x,y,16,16,'#e8e2d4');R(x+1,y+1,14,14,'#4ac0d0');R(x+2+(h%8),y+4+(h%6),4,1,'#9ae4ec');break;
+   case 'f':grass();R(x,y+5,16,2,'#f2ece0');R(x,y+10,16,2,'#f2ece0');for(let i=1;i<16;i+=5)R(x+i,y+3,2,11,'#f2ece0');break;
+   case 'g':R(x,y,16,16,'#c9b88a');R(x,y,2,16,'#f2ece0');R(x+14,y,2,16,'#f2ece0');R(x,y,2,3,'#d8b24a');R(x+14,y,2,3,'#d8b24a');break;
+   case 'k':R(x,y,16,16,'#8a8a80');for(let i=0;i<16;i+=3)R(x,y+i,16,1,'#6e6e66');if(ty===7){R(x,y,16,4,'#5a4a3a');}if(tx===0&&ty===8){}R(x+4,y+6,8,6,ty===7?'#2a3448':'#8a8a80');break;
+   case 'a':R(x,y,16,16,'#8e8c84');R(x+(h%13),y+((h>>3)%13),2,1,'#a8a69e');R(x+((h>>6)%13),y+((h>>9)%13),1,1,'#76746c');break;
+   case 'A':R(x,y,16,16,'#8e8c84');R(x+1,y+6,14,10,'#6e6c66');R(x+3,y+3,10,6,'#7e7c74');R(x+5,y+1,6,4,'#8a8880');R(x+4,y+4,3,2,'#9a988e');break;
+   case 'B':R(x,y,16,16,'#8e8c84');break;
+   case 'G':R(x,y,16,16,'#8a7a6a');for(let i=0;i<16;i+=4)R(x,y+i,16,1,'#76685a');if(ty===2)R(x,y,16,3,'#5a4a3a');break;
+   case 'P':R(x,y,16,16,'#8e8c84');R(x+5,y+2,6,13,'#c94a3a');R(x+6,y+4,4,3,'#f2ece0');R(x+4,y+14,8,2,'#5a5a5a');break;
+   case 't':R(x,y,16,16,'#7e7c74');R(x,y+4,16,2,'#8a8a92');R(x,y+10,16,2,'#8a8a92');for(let i=1;i<16;i+=5)R(x+i,y+3,2,10,'#5a4a3a');R(x,y+4,16,1,'#b8b8c0');R(x,y+10,16,1,'#b8b8c0');break;
+   case 'C':{const cols=['#6a5a5a','#5a5a6a','#7a6a5a','#5a6a62'];const c=cols[(tx>>1)%4];R(x,y,16,16,c);R(x,y,16,1,shade(c,.7));for(let i=2;i<16;i+=7)for(let j=3;j<16;j+=6)R(x+i,y+j,3,3,(hash(tx*7+i,ty*3+j)%3)?'#e8c86a':'#2a3040');break;}
+   case 'c':{const c='#5a4e4e';R(x,y,16,16,c);R(x+3,y+3,10,10,'#2a2018');R(x+4,y+4,8,8,'#e8c86a');R(x+7,y+4,2,8,'#2a2018');if(sid==='s10'&&tx>=11&&tx<=13&&ty===1){R(x,y,16,16,'#c9b88a');R(x+3,y+3,10,10,'#2a2018');R(x+4,y+4,8,8,'#f2e0a0');}break;}
+   case 's':R(x,y,16,16,'#b8b0a0');R(x,y+15,16,1,'#9a9284');R(x+15,y,1,16,'#a8a092');break;
+   case 'L':R(x,y,16,16,'#b8b0a0');R(x+7,y+3,2,13,'#2a2a30');R(x+5,y,6,4,'#2a2a30');R(x+6,y+1,4,2,'#f2d87a');break;
+   default:R(x,y,16,16,'#000');
+  }
+}
+const CACHE={};
+function screenCanvas(sid){if(CACHE[sid])return CACHE[sid];const c=document.createElement('canvas');c.width=W*16;c.height=H*16;const prev=K;K=c.getContext('2d');const m=SCR[sid].map;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)tile(sid,m[y][x],x,y,0,0);
+  if(sid==='s10'){K.fillStyle='#f2e0a0';K.font='6px "Press Start 2P",monospace';K.fillText('PLAZA',178,6);K.fillStyle='#d8c86a';K.fillText('158TH ST',66,6);K.fillText('42ND ST',50,110);}
+  if(sid==='s11'){K.fillStyle='#e8dcc0';K.font='5px "Press Start 2P",monospace';K.fillText('REPAIRS',33,37);}
+  K=prev;CACHE[sid]=c;return c;}
+function drawBillboard(ox,oy){const x=ox+8*16,y=oy;R(x,y+2,64,26,'#d8c88a');R(x,y+2,64,2,'#a8986a');R(x+2,y+28,3,4,'#5a4a3a');R(x+59,y+28,3,4,'#5a4a3a');
+  for(const ex of [12,38]){R(x+ex,y+9,14,10,'#f2ece0');R(x+ex+4,y+10,7,8,'#3a7ac9');R(x+ex+6,y+12,3,4,'#14233a');R(x+ex-1,y+8,16,1,'#1a1a1a');R(x+ex-1,y+19,16,1,'#1a1a1a');R(x+ex-1,y+8,1,12,'#1a1a1a');R(x+ex+15,y+8,1,12,'#1a1a1a');}
+  R(x+27,y+12,10,1,'#1a1a1a');R(x+6,y+22,52,3,'#b8a878');}
+function drawWater(sid,ox,oy,t){const m=SCR[sid].map;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m[y][x]!=='~')continue;const ph=Math.floor(t*2+x*.7+y*1.3)%4;R(ox+x*16+ph*3,oy+y*16+5+(x%2)*5,5,1,'#5a90cc');}}
+function drawPerson(o,dir,step,px,py){
+  const bob=step?1:0;const r=(x,y,w,h,c)=>R(px+x,py+y,w,h,c);
+  r(3,22,10,2,'rgba(0,0,0,.25)');
+  if(o.sex==='f'){
+    r(5,22-(step===1?1:0),2,1,'#2a1a14');r(9,22-(step===2?1:0),2,1,'#2a1a14');
+    for(let y=11;y<=19;y++){const w=3+Math.floor((y-11)/3);r(8-w,y-bob,w*2,1,o.outfit);}
+    r(5,20-bob,2,2,o.skin);r(9,20-bob,2,2,o.skin);
+    r(5,9-bob,6,3,o.outfit);r(4,13-bob,8,1,o.accent);
+    r(4,10-bob,1,4,o.skin);r(11,10-bob,1,4,o.skin);
+  } else {
+    const l=step===1?1:0,rr=step===2?1:0;
+    r(5,18-l,2,4,'#211a16');r(9,18-rr,2,4,'#211a16');r(5,15-bob,6,4,shade(o.outfit,.82));
+    r(4,10-bob,8,6,o.outfit);if(dir!=='up'){r(7,10-bob,2,4,o.accent);r(6,9-bob,4,1,'#f4f1ea');}
+    r(3,10-bob,1,5,o.outfit);r(12,10-bob,1,5,o.outfit);r(3,15-bob,1,1,o.skin);r(12,15-bob,1,1,o.skin);
+  }
+  const hy=-bob;r(5,4+hy,6,5,o.skin);
+  if(o.sex==='f'){r(4,3+hy,8,2,o.hair);r(4,5+hy,1,3,o.hair);r(11,5+hy,1,3,o.hair);}
+  else{r(5,2+hy,6,2,o.hair);r(4,3+hy,1,3,o.hair);r(11,3+hy,1,3,o.hair);}
+  if(dir==='up')r(5,4+hy,6,4,o.hair);
+  else{const eye='#22150f';if(dir==='down'){r(6,6+hy,1,1,eye);r(9,6+hy,1,1,eye);r(7,8+hy,2,1,'#c97f74');}if(dir==='left')r(6,6+hy,1,1,eye);if(dir==='right')r(9,6+hy,1,1,eye);
+    if(o.glasses){r(5,5+hy,3,3,'#1a1a1a');r(8,5+hy,3,3,'#1a1a1a');r(6,6+hy,1,1,'#f2ece0');r(9,6+hy,1,1,'#f2ece0');}}
+  if(o.hat==='boater'){r(4,1+hy,8,2,'#e8d39a');r(3,3+hy,10,1,'#e8d39a');r(4,2+hy,8,1,'#2a2a3a');}
+  if(o.hat==='cloche'){r(4,1+hy,8,4,o.hatc);r(3,4+hy,10,1,o.hatc);r(9,2+hy,2,1,'#f2e6c9');}
+  if(o.hat==='cap'){r(4,1+hy,8,3,o.hatc);r(4,4+hy,9,1,shade(o.hatc,.7));}
+}
+function excl(px,py,t){const b=Math.round(Math.sin(t*5)*1.5);R(px+6,py-11+b,4,8,'#000');R(px+7,py-10+b,2,5,'#f2c94c');R(px+6,py-2+b,4,3,'#000');R(px+7,py-1+b,2,1,'#f2c94c');}
+function rumorSprite(r,t){const x=r.x,y=r.y+Math.sin(t*4+r.ph)*2;R(x-7,y-5,14,10,'#000');R(x-6,y-4,12,8,'#f4f1ea');R(x-3,y+4,3,3,'#000');R(x-2,y+4,2,2,'#f4f1ea');K.fillStyle='#c94a3a';K.font='7px "Press Start 2P",monospace';K.fillText(Math.floor(t*3+r.ph)%2?'?!':'!?',x-5,y+3);}
+function carSprite(x,y,col,broken){R(x,y+5,30,8,col);R(x+6,y,14,6,shade(col,.85));R(x+8,y+1,10,4,'#2a3448');R(x,y+9,30,1,'#c9c0a8');R(x+3,y+12,6,4,'#1a1a1a');if(!broken)R(x+21,y+12,6,4,'#1a1a1a');R(x+27,y+6,3,2,'#f2e6a0');if(broken){R(x+22,y+14,6,2,'#3a3a3a');}}
+function heart(x,y,fill){const full=fill>=2,half=fill===1;const c=full?'#e04a4a':'#3a2020';const pts=[[1,0,2,1],[5,0,2,1],[0,1,8,3],[1,4,6,1],[2,5,4,1],[3,6,2,1]];pts.forEach(p=>R(x+p[0],y+p[1],p[2],p[3],c));if(half){pts.forEach(p=>{const w=Math.max(0,Math.min(p[2],4-p[0]));if(w>0)R(x+p[0],y+p[1],w,p[3],'#e04a4a');});}}
+
+// ================= ENTITIES ON SCREEN =================
+const cur=()=>CH[G.ch]||null;
+const beatOf=()=>{const c=cur();return c?c.beats[G.beat]||null:null;};
+function chapterNPCs(){const c=cur();if(!c)return [];const list=[];const by={};
+  c.beats.forEach((b,i)=>{if(b.k==='talk')(by[b.who]=by[b.who]||[]).push(i);});
+  for(const [who,I] of Object.entries(by)){const past=I.filter(i=>i<=G.beat);const i=past.length?past[past.length-1]:I[0];const b=c.beats[i];list.push({who,beat:b,bi:i,scr:b.scr,x:b.x,y:b.y});}
+  const am=(AMB[G.ch]||{});for(const [scr,arr] of Object.entries(am))arr.forEach(a=>{if(!list.some(n=>n.who===a.id&&n.scr===scr))list.push({who:a.id,scr,x:a.x,y:a.y,line:a.line,amb:true});});
+  return list;}
+let npcs=[],objs=[];
+function buildScreen(){const c=cur();npcs=chapterNPCs().filter(n=>n.scr===G.scr).map(n=>({...n,dir:'down'}));
+  objs=[];if(c)c.beats.forEach((b,i)=>{if(b.k==='look'&&b.scr===G.scr)objs.push({beat:b,bi:i,x:b.x,y:b.y,name:b.name,obj:b.obj});});
+  if(G.scr===DESK.scr)objs.push({desk:true,x:DESK.x,y:DESK.y,name:'Your writing desk'});
+  st.rumors=[];const b=beatOf();if(b&&b.k==='rumors'&&b.scr===G.scr&&!st.open)spawnRumors(b);}
+function spawnRumors(b){st.rumors=[];st.popped=0;for(let i=0;i<b.count+1;i++){st.rumors.push({x:40+((i*61)%170),y:52+((i*37)%30),ph:i*1.7,text:b.rumors[i%b.rumors.length],cool:0});}}
+function npcSolid(x,y){return npcs.some(n=>x>=n.x*16-1&&x<=n.x*16+16&&y>=n.y*16+4&&y<=n.y*16+16);}
+function objSolid(tx,ty){return objs.some(o=>o.x===tx&&o.y===ty)||(G.ch===3&&G.scr==='s02'&&false);}
+function decoSolid(tx,ty){if(G.scr==='s12'&&G.ch===4&&ty===2&&(tx===13||tx===14))return true;return false;}
+function solidAt(px,py){const tx=Math.floor(px/16),ty=Math.floor(py/16);if(tx<0||ty<0||tx>=W||ty>=H)return false;const t=SCR[G.scr].map[ty][tx];return SOLID.has(t)||objSolid(tx,ty)||decoSolid(tx,ty)||npcSolid(px,py);}
+function boxFree(x,y){return !solidAt(x+3,y+10)&&!solidAt(x+12,y+10)&&!solidAt(x+3,y+15)&&!solidAt(x+12,y+15);}
+
+// ================= RENDER =================
+function render(t){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,256,224);K=ctx;
+  drawHUD(t);
+  ctx.save();ctx.beginPath();ctx.rect(0,HUD,256,176);ctx.clip();
+  if(st.trans){const tr=st.trans,k=Math.min(1,tr.t/.4),dx=tr.dx,dy=tr.dy;const ox=-dx*256*k,oy=HUD-dy*176*k;
+    ctx.drawImage(screenCanvas(tr.from),ox,oy);ctx.drawImage(screenCanvas(tr.to),ox+dx*256,oy+dy*176);
+    drawPerson(PEOPLE.nick.look,st.face,Math.floor(t*8)%2+1,tr.px1+dx*256*(1-k),HUD+tr.py1+dy*176*(1-k)-8);
+    ctx.restore();return;}
+  ctx.drawImage(screenCanvas(G.scr),0,HUD);drawWater(G.scr,0,HUD,t);
+  const oy=HUD;
+  if(G.scr==='s11')drawBillboard(0,oy);
+  if(G.scr==='s01'){const gl=.6+Math.sin(t*3)*.4;R(5*16+6,oy+3*16+5,4,4,'#5fe08a');ctx.globalAlpha=gl*.5;R(5*16+3,oy+3*16+2,10,10,'#5fe08a');ctx.globalAlpha=1;}
+  if(G.scr==='s12'&&G.ch===4)carSprite(13*16,oy+2*16,'#efe2b0',false);
+  const b=beatOf();
+  // objects
+  for(const o of objs){const px=o.x*16,py=oy+o.y*16;
+    if(o.obj==='crash')carSprite(px-8,py,'#c9c0b0',true);
+    if(o.obj==='dockview'){R(px+5,py+4,6,8,'#9a6a3a');}
+    const active=o.desk?(b===null&&G.ch<=9):(b&&o.beat===b);
+    if(active)excl(px,py+8,t);
+    else if(o.desk&&G.ch<=9){}}
+  // characters & player sorted
+  const list=npcs.map(n=>({n,y:n.y*16}));list.push({me:true,y:st.py});list.sort((a,c)=>a.y-c.y);
+  for(const it of list){if(it.me){if(st.inv>0&&Math.floor(t*20)%2)continue;drawPerson(PEOPLE.nick.look,st.face,st.moving?(Math.floor(st.walk*8)%2?1:2):0,st.px,oy+st.py-8);drawPen(t);continue;}
+    const n=it.n;drawPerson(PEOPLE[n.who].look,n.dir,0,n.x*16,oy+n.y*16-8);if(!n.amb&&b&&n.beat===b)excl(n.x*16,oy+n.y*16-8,t);}
+  for(const r of st.rumors)rumorSprite({x:r.x,y:oy+r.y,ph:r.ph},t);
+  ctx.restore();
+}
+function drawPen(t){if(st.pen<=0)return;const k=1-st.pen/.25;const [dx,dy]=DIRV[st.face];const x=st.px+8+dx*(6+k*8),y=HUD+st.py+8+dy*(6+k*8)-(dy===0?2:0);
+  R(x-(dy?1:4),y-(dy?4:1),dy?2:8,dy?8:2,'#1a1a2a');R(x-1,y-1,3,3,'#d8b24a');ctx.globalAlpha=.6;R(x+dx*5-2,y+dy*5-2,4,4,'#2a2a6a');ctx.globalAlpha=1;}
+function drawHUD(t){
+  R(0,0,256,HUD,'#000');
+  const mx=8,my=8;for(const [sid,[gx,gy]] of Object.entries(GRID)){const unlocked=G.ch>=2||['s00','s01','s02'].includes(sid);let c=unlocked?'#5a5a5a':'#202020';if(sid===G.scr)c='#5fe08a';const b=beatOf();const tgt=b?b.scr:(G.ch<=9?DESK.scr:null);if(sid===tgt&&Math.floor(t*3)%2&&sid!==G.scr)c='#d8b24a';R(mx+gx*14,my+gy*10,12,8,c);}
+  ctx.font='8px "Press Start 2P",monospace';ctx.textBaseline='top';
+  ctx.fillStyle='#d8b24a';ctx.fillText(G.ch<=9?('CH.'+['','I','II','III','IV','V','VI','VII','VIII','IX'][G.ch]):'THE END',58,8);
+  ctx.fillStyle='#b2b8a6';ctx.font='6px "Press Start 2P",monospace';ctx.fillText(SCR[G.scr].name.toUpperCase(),58,22);
+  ctx.fillText('EVIDENCE '+Object.keys(G.ev).length,58,34);
+  ctx.fillStyle='#e07a52';ctx.fillText('-CREDIBILITY-',168,8);
+  for(let i=0;i<3;i++)heart(176+i*11,20,Math.max(0,Math.min(2,G.hp-i*2)));
+  // item boxes
+  ctx.strokeStyle='#5a7ac9';ctx.lineWidth=1;ctx.strokeRect(130.5,14.5,14,20);ctx.strokeRect(148.5,14.5,14,20);ctx.fillStyle='#b2b8a6';ctx.fillText('B',134,6);ctx.fillText('A',152,6);
+  R(136,18,2,12,'#1a1a2a');R(135,29,4,3,'#d8b24a');R(136,16,2,2,'#e8e2d4');
+  R(151,19,9,12,'#efe4c6');R(151,19,1,12,'#7a5434');R(153,22,6,1,'#9a8a6a');R(153,25,5,1,'#9a8a6a');
+}
+
+// ================= UPDATE =================
+const keys={};const DIRV={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+function update(dt){
+  if(st.toastT>0){st.toastT-=dt;if(st.toastT<=0)document.getElementById('toast').hidden=true;}
+  if(st.trans){st.trans.t+=dt;if(st.trans.t>=.4){const tr=st.trans;st.trans=null;G.scr=tr.to;st.px=tr.px1;st.py=tr.py1;buildScreen();save();updateObjective();}return;}
+  if(st.open)return;
+  if(st.pen>0)st.pen-=dt;if(st.inv>0)st.inv-=dt;
+  let dx=0,dy=0;if(keys.ArrowLeft||keys.KeyA)dx=-1;else if(keys.ArrowRight||keys.KeyD)dx=1;if(keys.ArrowUp||keys.KeyW)dy=-1;else if(keys.ArrowDown||keys.KeyS)dy=1;
+  st.moving=!!(dx||dy)&&st.pen<=0;
+  if(st.moving){st.walk+=dt;st.face=dy<0?'up':dy>0?'down':dx<0?'left':'right';if(dx&&dy){if(Math.abs(dx)>0)st.face=dx<0?'left':'right';}
+    const sp=68*dt;const nx=st.px+dx*sp,ny=st.py+dy*sp;
+    if(nx<-6||nx>256-10||ny<-8||ny>176-14){tryEdge(nx,ny);}
+    else{if(boxFree(nx,st.py))st.px=nx;if(boxFree(st.px,ny))st.py=ny;}}
+  // rumors
+  for(const r of st.rumors){const tx=st.px+8-r.x,ty=st.py+8-r.y,d=Math.hypot(tx,ty)||1;const sp=24*dt;r.x+=tx/d*sp+Math.cos(r.ph+st.walk*3)*.25;r.y+=ty/d*sp+Math.sin(r.ph+performance.now()/400)*.25;
+    if(d<11&&st.inv<=0){G.hp-=1;st.inv=1.1;blip(140,.2,'sawtooth');st.px=Math.max(0,Math.min(240,st.px-tx/d*14));st.py=Math.max(0,Math.min(160,st.py-ty/d*14));if(!boxFree(st.px,st.py)){st.px-=-tx/d*14;st.py-=-ty/d*14;}if(G.hp<=0)faint();}}
+  if(st.pen>.05){const [fx,fy]=DIRV[st.face];const hx=st.px+8+fx*14,hy=st.py+8+fy*14;
+    st.rumors=st.rumors.filter(r=>{if(Math.hypot(r.x-hx,r.y-hy)<13){popRumor(r);return false;}return true;});}
+}
+function tryEdge(nx,ny){
+  const [gx,gy]=GRID[G.scr];let dx=0,dy=0;if(nx<-6)dx=-1;else if(nx>246)dx=1;else if(ny<-8)dy=-1;else dy=1;
+  const to=Object.keys(GRID).find(k=>GRID[k][0]===gx+dx&&GRID[k][1]===gy+dy);if(!to)return;
+  const unlocked=G.ch>=2||['s00','s01','s02'].includes(to);
+  let px1=dx===1?2:dx===-1?240:st.px,py1=dy===1?2:dy===-1?160:st.py;
+  const tx=Math.floor((px1+8)/16),ty=Math.floor((py1+12)/16);const t=SCR[to].map[Math.max(0,Math.min(H-1,ty))][Math.max(0,Math.min(W-1,tx))];
+  if(SOLID.has(t))return;
+  if(!unlocked){toast('NOT YET','Nick has no reason to go to the city until Chapter II.');st.px=Math.max(-5,Math.min(245,st.px));return;}
+  if(st.rumors.length){const b=beatOf();if(b&&b.k==='rumors'&&st.popped<b.count){toast('THE PARTY','The rumors follow you. Pop them before you leave.');return;}}
+  st.trans={from:G.scr,to,t:0,dx,dy,px0:st.px,py0:st.py,px1,py1};st.rumors=[];blip(330,.05);
+}
+function faint(){G.hp=6;G.scr=DESK.scr;st.px=2*16;st.py=9*16;st.inv=1.5;buildScreen();toast('OUT OF CREDIBILITY','You retreat to your cottage to collect yourself.');save();}
+function popRumor(r){st.popped++;blip(880,.08);setTimeout(()=>blip(1175,.08),70);toast('RUMOR',`"${r.text}"`);
+  const b=beatOf();if(b&&b.k==='rumors'&&st.popped>=b.count){st.rumors=[];setTimeout(()=>runBeat(b),700);}}
+function swing(){if(st.open||st.trans||st.pen>0)return;st.pen=.25;blip(600,.04);}
+
+// ================= INTERACTION =================
+function facingTile(){const [dx,dy]=DIRV[st.face];const cx=st.px+8,cy=st.py+12;return [Math.floor((cx+dx*12)/16),Math.floor((cy+dy*12)/16)];}
+function act(){if(st.trans)return;if(st.dlg){advance();return;}if(st.open)return;
+  const [tx,ty]=facingTile();const near=(x,y)=>Math.abs(x-tx)+Math.abs(y-ty)===0;
+  let n=npcs.find(n=>near(n.x,n.y));let o=objs.find(o=>near(o.x,o.y));
+  if(!n&&!o){const cx=Math.floor((st.px+8)/16),cy=Math.floor((st.py+12)/16);n=npcs.find(n=>Math.abs(n.x-cx)+Math.abs(n.y-cy)===1);if(!n)o=objs.find(o=>Math.abs(o.x-cx)+Math.abs(o.y-cy)===1);}
+  if(n){n.dir=st.face==='up'?'down':st.face==='down'?'up':st.face==='left'?'right':'left';talkTo(n);return;}
+  if(o){lookAt(o);}
+}
+function talkTo(n){const b=beatOf();const P=PEOPLE[n.who];
+  if(n.amb){dialog([{who:P.name.toUpperCase(),text:n.line}]);return;}
+  if(b&&n.beat===b){runBeat(b);return;}
+  if(n.bi<G.beat){const ln=n.beat.lines[n.beat.lines.length-1];dialog([{who:'NICK',text:'You remember what was said here:'},{who:ln[0],text:ln[1]}]);return;}
+  dialog([{who:P.name.toUpperCase(),text:`${P.name} has nothing to say to you yet.`},{who:'NEXT',text:b?b.hint:'Return to your desk to write up this chapter.'}]);}
+function lookAt(o){const b=beatOf();
+  if(o.desk){if(G.ch>9){openJournal('theme');return;}if(b){dialog([{who:'YOUR DESK',text:`Chapter ${CH[G.ch].title.split(' ')[1]} isn't finished yet. Next:`},{who:'NEXT',text:b.hint}]);}else openWrite();return;}
+  if(b&&o.beat===b){runBeat(b);return;}
+  if(o.bi<G.beat){const ln=o.beat.lines[o.beat.lines.length-1];dialog([{who:ln[0],text:ln[1]}]);return;}
+  dialog([{who:o.name.toUpperCase(),text:'Nothing here yet.'},{who:'NEXT',text:b?b.hint:'Return to your desk.'}]);}
+function runBeat(b){
+  const steps=b.lines.map(([who,text])=>({who,text}));
+  if(b.ask)steps.push({ask:b.ask,key:b.id});
+  dialog(steps,()=>completeBeat(b));
+}
+function completeBeat(b){
+  const got=[];(b.ev||[]).forEach(id=>{if(!G.ev[id]){G.ev[id]=true;got.push(id);}});
+  [b.claim,b.claim2].forEach(c=>{if(c&&!G.claims[c])G.claims[c]={found:true,verdict:null,pins:[],ok:false};});
+  if(b.item&&!G.items.includes(b.item))G.items.push(b.item);
+  if(b.motif)G.motifs[b.id]={m:b.motif.m,ch:G.ch,line:b.motif.line,themes:b.motif.themes,ok:G.asks[b.id]};
+  G.beat++;save();jingle();
+  const parts=[];if(got.length)parts.push(`${got.length} quote${got.length>1?'s':''} added to your evidence`);if(b.claim)parts.push('a new claim in your Case File');if(b.motif)parts.push(MOTIFS[b.motif.m].name+' logged in your motif timeline');if(b.item)parts.push('item: '+b.item);
+  if(parts.length)toast('NOTED',parts.join(' · '));
+  buildScreen();updateObjective();
+}
+
+// ================= DIALOG BOX =================
+const dEl=document.getElementById('dlg'),dWho=document.getElementById('dWho'),dTxt=document.getElementById('dTxt'),dOpts=document.getElementById('dOpts'),dMore=document.getElementById('dMore');
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function dialog(steps,done){st.dlg={steps,i:0,done,typing:false};st.open='dlg';dEl.hidden=false;showStep();}
+function showStep(){const D=st.dlg,s=D.steps[D.i];dOpts.innerHTML='';dMore.hidden=true;
+  if(s.ask){const a=s.ask;dWho.textContent='THINK IT THROUGH';dTxt.textContent=a.q;D.answered=false;
+    a.o.forEach((o,k)=>{const b=document.createElement('button');b.type='button';b.className='opt';b.innerHTML=`<span class="k">${k+1}</span>${esc(o)}`;b.onclick=()=>answer(k);dOpts.appendChild(b);});
+    setTimeout(()=>{const f=dOpts.querySelector('button');if(f)f.focus({preventScroll:true});},20);return;}
+  dWho.textContent=s.who;const full=s.text;
+  if(REDUCED){dTxt.textContent=full;dMore.hidden=false;return;}
+  D.typing=true;let n=0;dTxt.textContent='';clearInterval(D.timer);
+  D.timer=setInterval(()=>{n+=2;dTxt.textContent=full.slice(0,n);if(n%6===0)blip(1200,.01);if(n>=full.length){clearInterval(D.timer);D.typing=false;dMore.hidden=false;}},18);
+  D.full=full;}
+function answer(k){const D=st.dlg,s=D.steps[D.i],a=s.ask;if(D.answered)return;D.answered=true;const ok=k===a.a;
+  if(s.key&&G.asks[s.key]===undefined)G.asks[s.key]=ok;save();blip(ok?880:180,.12);
+  dOpts.innerHTML=`<div class="fb"><b class="${ok?'':'no'}">${ok?'Yes.':'Not quite.'}</b> ${ok?'':'The strongest reading: '+esc(a.o[a.a])+' '}${esc(a.why)}</div>`;
+  dMore.hidden=false;}
+function advance(){const D=st.dlg;if(!D)return;const s=D.steps[D.i];
+  if(s.ask&&!D.answered)return;
+  if(D.typing){clearInterval(D.timer);D.typing=false;dTxt.textContent=D.full;dMore.hidden=false;return;}
+  D.i++;if(D.i>=D.steps.length){dEl.hidden=true;const done=D.done;st.dlg=null;st.open=null;cv.focus({preventScroll:true});if(done)done();return;}
+  showStep();}
+dEl.addEventListener('click',e=>{if(e.target.closest('.opt'))return;advance();});
+function toast(h,txt){const el=document.getElementById('toast');el.innerHTML=`<b>${esc(h)}</b>${esc(txt)}`;el.hidden=false;st.toastT=3.2;}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function updateObjective(){const tag=document.getElementById('objTag'),tx=document.getElementById('objText');
+  if(G.ch>9){tag.textContent='THE END';tx.textContent=G.synth?'You\'ve finished the novel and written your argument. Explore freely, or reread your journal.':'You\'ve finished the novel. Open the Journal\'s Theme tab to write your final argument.';return;}
+  const c=CH[G.ch],b=beatOf();tag.textContent='CH. '+c.title.split(' ')[1];tx.textContent=b?b.hint:`All of Chapter ${c.title.split(' ')[1]} is in your notes. Return to your desk at your cottage in West Egg to write it up.`;}
+
+// ================= WRITING DESK (summary gate) =================
+function seeded(arr,seed){const a=arr.slice();let h=seed*2654435761>>>0;for(let i=a.length-1;i>0;i--){h=(h*1103515245+12345)>>>0;const j=h%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function openWrite(){const c=CH[G.ch];st.open='write';st.w={step:'pick',order:[],cards:seeded([...c.sum.keys,...c.sum.decoys],G.ch*7+3),msg:'',tries:0,relTried:[],themeTried:[]};
+  document.getElementById('wWin').hidden=false;document.getElementById('wTitle').textContent='Writing up '+c.title;document.getElementById('wSub').textContent=c.sub;renderWrite();}
+function renderWrite(){const c=CH[G.ch],w=st.w,body=document.getElementById('wBody');const hasTheme=!!c.theme;
+  const steps=[['pick','1. KEY EVENTS'],['rel','2. CONNECTIONS'],...(hasTheme?[['theme','3. THEME']]:[]),['done',(hasTheme?'4':'3')+'. YOUR SUMMARY']];
+  let h=`<div class="steps">${steps.map(([k,l])=>`<span class="${w.step===k?'on':''}">${l}</span>`).join('')}</div>`;
+  if(w.step==='pick'){h+=`<p style="margin:0">An accurate summary keeps only the details that matter, in the order they happen. Click the <b>four key events</b> of ${esc(c.title)} in order. Two of these cards don't belong.</p><div class="cards">`;
+    w.cards.forEach((t,i)=>{const pos=w.order.indexOf(i);h+=`<button type="button" class="card${w.bad&&w.bad.includes(i)?' bad':''}" data-i="${i}" aria-pressed="${pos>=0}"><span class="n">${pos>=0?pos+1:''}</span><span>${esc(t)}</span></button>`;});
+    h+=`</div><div class="row"><button class="pbtn gold" id="wCheck" type="button" ${w.order.length===4?'':'disabled'}>Check my summary</button><button class="pbtn" id="wClear" type="button">Clear</button></div>${w.msg?`<div class="fbk">${w.msg}</div>`:''}`;}
+  if(w.step==='rel'||w.step==='theme'){const q=w.step==='rel'?c.sum.rel:c.theme;const tried=w.step==='rel'?w.relTried:w.themeTried;
+    h+=`<p style="margin:0">${w.step==='rel'?'A summary also has to show how events relate. ':'Themes develop as elements build on one another. '}<b>${esc(q.q)}</b></p><div class="choices">`;
+    q.o.forEach((o,i)=>{const cls=tried.includes(i)?(i===q.a?' right':' wrong'):'';h+=`<button type="button" class="choice${cls}" data-o="${i}">${esc(o)}</button>`;});
+    h+=`</div>${w.msg?`<div class="fbk">${w.msg}</div>`:''}`;
+    if(tried.includes(q.a))h+=`<div class="row"><button class="pbtn gold" id="wNext" type="button">Continue</button></div>`;}
+  if(w.step==='done'){const para=c.sum.keys.join(' ')+' '+c.sum.rel.o[c.sum.rel.a];
+    h+=`<div class="summary"><span class="cap">${esc(c.title)}: ${esc(c.sub)}</span>${esc(para)}</div><p class="note">This summary is saved to your journal.</p><div class="row"><button class="pbtn gold" id="wFinish" type="button">${G.ch<9?'Finish and begin Chapter '+CH[G.ch+1].title.split(' ')[1]:'Finish the novel'}</button></div>`;}
+  body.innerHTML=h;
+  body.querySelectorAll('.card').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const p=w.order.indexOf(i);if(p>=0)w.order.splice(p,1);else if(w.order.length<4)w.order.push(i);w.bad=null;w.msg='';renderWrite();});
+  const ck=document.getElementById('wCheck');if(ck)ck.onclick=checkPick;
+  const cl=document.getElementById('wClear');if(cl)cl.onclick=()=>{w.order=[];w.bad=null;w.msg='';renderWrite();};
+  body.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{const i=+b.dataset.o;const q=w.step==='rel'?c.sum.rel:c.theme;const tried=w.step==='rel'?w.relTried:w.themeTried;if(tried.includes(q.a))return;if(!tried.includes(i))tried.push(i);
+    if(w.step==='theme'&&G.themes[G.ch]===undefined)G.themes[G.ch]=i===q.a;
+    w.msg=i===q.a?`<b>Yes.</b> ${esc(q.why)}`:`<b class="no">Try again.</b> Which choice is supported by the events, rather than adding causes the text doesn't give?`;blip(i===q.a?880:180,.1);renderWrite();});
+  const nx=document.getElementById('wNext');if(nx)nx.onclick=()=>{w.msg='';w.step=w.step==='rel'&&hasTheme?'theme':'done';renderWrite();};
+  const fin=document.getElementById('wFinish');if(fin)fin.onclick=finishChapter;
+  const f=body.querySelector('button:not([disabled])');if(f)f.focus({preventScroll:true});
+}
+function checkPick(){const c=CH[G.ch],w=st.w;w.tries++;const chosen=w.order.map(i=>w.cards[i]);
+  const decoys=w.order.filter(i=>c.sum.decoys.includes(w.cards[i]));
+  if(decoys.length){w.bad=decoys;w.msg=`<b class="no">Not accurate yet.</b> ${decoys.length===1?'One card you chose doesn\'t':'Two cards you chose don\'t'} happen this way in ${esc(c.title)}. Check your evidence and try again.`;blip(180,.12);renderWrite();return;}
+  const inOrder=chosen.every((t,i)=>t===c.sum.keys[i]);
+  if(!inOrder){w.msg=`<b class="no">Right events, wrong order.</b> Which of these happens first? Clear and try again.`;blip(180,.12);renderWrite();return;}
+  w.msg='';w.step='rel';blip(880,.1);renderWrite();}
+function finishChapter(){const c=CH[G.ch];G.sums[G.ch]={text:c.sum.keys.join(' ')+' '+c.sum.rel.o[c.sum.rel.a],tries:st.w.tries};
+  G.ch++;G.beat=0;G.hp=6;save();document.getElementById('wWin').hidden=true;st.open=null;jingle();buildScreen();updateObjective();
+  if(G.ch<=9){const n=CH[G.ch];dialog([{who:n.title.toUpperCase(),text:n.sub+'.'},{who:'NEXT',text:n.beats[0].hint}]);}
+  else{dialog([{who:'THE END',text:'You have written up all nine chapters.'},{who:'NEXT',text:'Open your journal\'s Theme tab and build your final argument about how a theme develops across the whole novel.'}],()=>openJournal('theme'));}}
+
+// ================= JOURNAL =================
+const TABS=[['case','Case File'],['ev','Evidence'],['motif','Motifs'],['sum','Summaries'],['theme','Theme']];
+function openJournal(tab){if(st.dlg)return;if(tab)st.tab=tab;st.open='journal';document.getElementById('jWin').hidden=false;
+  document.getElementById('jSub').textContent=G.ch<=9?`Working on ${CH[G.ch].title} · ${Object.keys(G.ev).length} quotes collected`:`Novel complete · ${Object.keys(G.ev).length} quotes collected`;renderJournal();document.querySelector('#jWin [data-close]').focus();}
+function evChip(id,pressed,dis){const e=EVID[id];return `<button type="button" class="chip" data-ev="${id}" aria-pressed="${pressed}" ${dis?'disabled':''}>“${esc(e.q.length>110?e.q.slice(0,107)+'…':e.q)}” <span class="muted">(${esc(e.who)}, Ch. ${e.ch})</span></button>`;}
+function renderJournal(){const tabs=document.getElementById('jTabs');tabs.innerHTML='';
+  TABS.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='tab';b.role='tab';b.setAttribute('aria-selected',String(st.tab===k));b.textContent=l;b.onclick=()=>{st.tab=k;renderJournal();};tabs.appendChild(b);});
+  const body=document.getElementById('jBody');let h='';
+  if(st.tab==='case'){const ids=Object.keys(CLAIMS).filter(id=>G.claims[id]);
+    h+=`<p style="margin:0">People in this novel make claims, and some of them are lies. For each claim, decide what the text supports, then pin the quotes that prove it. Some claims can only be settled once later chapters give you the evidence.</p>`;
+    if(!ids.length)h+=`<p class="note">No claims yet. They'll appear as people make them.</p>`;
+    ids.forEach(id=>{const C=CLAIMS[id],g=G.claims[id];h+=`<div class="claim${g.ok?' done':''}" data-c="${id}"><div class="ct">${esc(C.text)}</div><div class="src">Claimed by ${esc(C.who)}, Chapter ${C.ch}</div>`;
+      if(g.ok){h+=`<div class="fbk"><b>${esc(g.verdict)}.</b> ${esc(C.why)}</div><div class="evlist">${g.pins.map(p=>`<q class="ev">${esc(EVID[p].q)}</q><small>${esc(EVID[p].who)}, Ch. ${EVID[p].ch}</small>`).join('')}</div>`;}
+      else{h+=`<div class="h">YOUR VERDICT</div><div class="row">${VERDICTS.map(v=>`<button type="button" class="chip v" data-v="${v}" aria-pressed="${g.verdict===v}">${v}</button>`).join('')}</div>`;
+        h+=`<div class="h">PIN YOUR EVIDENCE</div><div class="row">${Object.keys(G.ev).filter(e=>e!==C.src).sort((a,b)=>EVID[a].ch-EVID[b].ch).map(e=>evChip(e,g.pins.includes(e))).join('')}</div>`;
+        h+=`<div class="row"><button type="button" class="pbtn gold" data-check="${id}" ${g.verdict&&g.pins.length?'':'disabled'}>Rule on this claim</button></div>${g.msg?`<div class="fbk">${g.msg}</div>`:''}`;}
+      h+='</div>';});}
+  if(st.tab==='ev'){h+=`<p style="margin:0">Every quote Nick has noted, by chapter. Explicit evidence states something directly. Implicit evidence lets you infer it.</p>`;
+    for(let c=1;c<=9;c++){const ids=Object.keys(EVID).filter(id=>EVID[id].ch===c&&G.ev[id]);if(!ids.length)continue;h+=`<div class="h">${esc(CH[c].title.toUpperCase())}</div><div class="evlist">${ids.map(id=>`<q class="ev">${esc(EVID[id].q)}</q><small>${esc(EVID[id].who)}</small>`).join('')}</div>`;}}
+  if(st.tab==='motif'){h+=`<p style="margin:0">Each time an image returns, its meaning shifts. Read across a row to see a motif develop.</p><div class="mgrid"><table><thead><tr><th class="l">MOTIF</th>${[1,2,3,4,5,6,7,8,9].map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody>`;
+    for(const [m,M] of Object.entries(MOTIFS)){h+=`<tr><td class="l">${esc(M.name)}</td>`;for(let c=1;c<=9;c++){const has=Object.values(G.motifs).some(e=>e.m===m&&e.ch===c);h+=`<td>${has?`<span class="dot" style="background:${M.col}" title="Chapter ${c}"></span>`:''}</td>`;}h+='</tr>';}
+    h+=`</tbody></table></div><div class="mentries">`;Object.values(G.motifs).sort((a,b)=>a.ch-b.ch).forEach(e=>{h+=`<div class="ment" style="border-color:${MOTIFS[e.m].col}"><b>${esc(MOTIFS[e.m].name)}</b>, Ch. ${e.ch}: ${esc(e.line)}<br><small>Develops: ${e.themes.map(t=>esc(THEMES[t].name)).join(', ')}</small></div>`;});h+='</div>';}
+  if(st.tab==='sum'){const ns=Object.keys(G.sums);if(!ns.length)h+=`<p class="note">Write up a chapter at your desk and its summary appears here.</p>`;ns.forEach(n=>{h+=`<div class="summary"><span class="cap">${esc(CH[n].title)}: ${esc(CH[n].sub)}</span>${esc(G.sums[n].text)}${G.sums[n].skipped?' <i>(filled in automatically)</i>':''}</div>`;});}
+  if(st.tab==='theme')h+=themeTab();
+  h+=`<div class="row" style="margin-top:6px"><button class="pbtn" id="jCopy" type="button">Copy my journal</button><button class="pbtn" id="jReset" type="button">Start over</button></div><p class="note" id="jNote"></p><div id="jOut"></div>`;
+  body.innerHTML=h;wireJournal(body);}
+function themeTab(){let h=`<p style="margin:0">A theme is an idea the novel develops over time. You have seen it built from images, events and characters that interact.</p>`;
+  [3,5,7].forEach(n=>{if(G.themes[n]!==undefined)h+=`<div class="ment" style="border-color:var(--gold)"><b>${esc(CH[n].title)}</b>: ${esc(CH[n].theme.o[CH[n].theme.a])}</div>`;});
+  if(G.ch<=9){h+=`<div class="h">FINAL ARGUMENT</div><p class="note">Unlocks when you finish Chapter IX. Keep logging motifs: your argument will be built from your own timeline.</p>`;return h;}
+  const s=G.synthDraft||(G.synthDraft={theme:null,picks:[],msg:''});
+  if(G.synth){h+=`<div class="h">YOUR FINAL ARGUMENT</div><div class="summary"><span class="cap">${esc(THEMES[G.synth.theme].name)}</span>${esc(G.synth.text)}</div>`;return h;}
+  h+=`<div class="h">FINAL ARGUMENT · STEP 1: CHOOSE A THEME</div><div class="row">${Object.entries(THEMES).map(([k,t])=>`<button type="button" class="chip v" data-theme="${k}" aria-pressed="${s.theme===k}">${esc(t.name)}</button>`).join('')}</div>`;
+  if(s.theme){h+=`<p class="note">${esc(THEMES[s.theme].stmt)}</p><div class="h">STEP 2: PICK THREE MOMENTS FROM AT LEAST THREE CHAPTERS THAT DEVELOP IT</div><div class="row">`;
+    Object.entries(G.motifs).sort((a,b)=>a[1].ch-b[1].ch).forEach(([k,e])=>{h+=`<button type="button" class="chip" data-pick="${k}" aria-pressed="${s.picks.includes(k)}">Ch. ${e.ch} · ${esc(MOTIFS[e.m].name)}: ${esc(e.line)}</button>`;});
+    h+=`</div><div class="row"><button type="button" class="pbtn gold" id="synthCheck" ${s.picks.length===3?'':'disabled'}>Build my argument</button></div>${s.msg?`<div class="fbk">${s.msg}</div>`:''}`;}
+  return h;}
+function wireJournal(body){
+  body.querySelectorAll('.claim').forEach(card=>{const id=card.dataset.c,g=G.claims[id];
+    card.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{g.verdict=b.dataset.v;g.msg='';save();renderJournal();});
+    card.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>{const e=b.dataset.ev;const i=g.pins.indexOf(e);if(i>=0)g.pins.splice(i,1);else g.pins.push(e);g.msg='';save();renderJournal();});
+    const ck=card.querySelector('[data-check]');if(ck)ck.onclick=()=>ruleClaim(id);});
+  body.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{G.synthDraft.theme=b.dataset.theme;G.synthDraft.msg='';renderJournal();});
+  body.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const s=G.synthDraft,k=b.dataset.pick,i=s.picks.indexOf(k);if(i>=0)s.picks.splice(i,1);else if(s.picks.length<3)s.picks.push(k);s.msg='';renderJournal();});
+  const sc=document.getElementById('synthCheck');if(sc)sc.onclick=checkSynth;
+  document.getElementById('jCopy').onclick=copyJournal;
+  document.getElementById('jReset').onclick=()=>{const n=document.getElementById('jNote');if(n.dataset.armed){localStorage.removeItem(KEY);G=fresh();closeAll();showTitle();}else{n.dataset.armed='1';n.textContent='This erases all progress in this browser. Click "Start over" again to confirm.';}};
+}
+function ruleClaim(id){const C=CLAIMS[id],g=G.claims[id];const hits=g.pins.filter(p=>C.ev.includes(p)).length;const off=g.pins.filter(p=>!C.ev.includes(p));const vOk=C.ans.includes(g.verdict);
+  const haveAll=C.ev.filter(e=>G.ev[e]).length;
+  if(haveAll<C.need){g.msg=`<b class="no">Not enough evidence yet.</b> The quotes that settle this come later in the novel. Keep reading, then come back.`;}
+  else if(!vOk&&hits>=C.need){g.msg=`<b class="no">Good evidence, but reconsider the verdict.</b> Read your pinned quotes again: do they prove the claim, disprove it, or leave it partly true or open?`;}
+  else if(hits<C.need){g.msg=`<b class="no">Your evidence doesn't settle it yet.</b> ${hits?'You have one strong quote. Pin '+(C.need-hits)+' more that bear directly on this claim.':'None of these quotes bear directly on this claim. Which ones speak to it explicitly or let you infer the truth?'}`;}
+  else if(off.length){g.msg=`<b class="no">Almost.</b> ${off.length===1?'One pinned quote doesn\'t':'Some pinned quotes don\'t'} bear on this claim. Strong evidence is specific, so remove what doesn't help.`;}
+  else{g.ok=true;g.msg='';jingle();}
+  save();renderJournal();}
+function checkSynth(){const s=G.synthDraft;const es=s.picks.map(k=>G.motifs[k]);const chs=new Set(es.map(e=>e.ch));const fit=es.filter(e=>e.themes.includes(s.theme)).length;
+  if(chs.size<3){s.msg=`<b class="no">Spread it across the novel.</b> Development means change over time, so choose moments from three different chapters.`;renderJournal();return;}
+  if(fit<2){s.msg=`<b class="no">These moments don't build this theme.</b> At most one of them develops "${esc(THEMES[s.theme].name)}." Choose moments where the image's meaning connects to your theme.`;renderJournal();return;}
+  const sorted=es.slice().sort((a,b)=>a.ch-b.ch);const ln=e=>e.line.replace(/: /g,', ');
+  const text=`${THEMES[s.theme].stmt} We first see this in Chapter ${sorted[0].ch}, where ${ln(sorted[0])}. The idea grows in Chapter ${sorted[1].ch}, where ${ln(sorted[1])}. By Chapter ${sorted[2].ch}, ${ln(sorted[2])}. Together these moments show how images and events build on one another until the idea becomes one of the novel's central judgments.`;
+  G.synth={theme:s.theme,text,picks:s.picks.slice()};save();jingle();renderJournal();updateObjective();}
+function journalText(){let o=`Boats Against the Current · Nick's Journal\nProgress: ${G.ch<=9?CH[G.ch].title:'novel complete'}\n\n== CASE FILE ==\n`;
+  Object.keys(G.claims).forEach(id=>{const C=CLAIMS[id],g=G.claims[id];o+=`Claim (${C.who}, Ch. ${C.ch}): ${C.text}\n  Verdict: ${g.ok?g.verdict:'(not yet ruled)'}\n`;if(g.ok)g.pins.forEach(p=>o+=`  Evidence: "${EVID[p].q}" (${EVID[p].who}, Ch. ${EVID[p].ch})\n`);});
+  o+=`\n== CHAPTER SUMMARIES ==\n`;Object.keys(G.sums).forEach(n=>o+=`${CH[n].title}: ${G.sums[n].text}\n`);
+  o+=`\n== MOTIF TIMELINE ==\n`;Object.values(G.motifs).sort((a,b)=>a.ch-b.ch).forEach(e=>o+=`Ch. ${e.ch} · ${MOTIFS[e.m].name}: ${e.line}\n`);
+  if(G.synth)o+=`\n== FINAL ARGUMENT: ${THEMES[G.synth.theme].name} ==\n${G.synth.text}\n`;return o;}
+async function copyJournal(){const txt=journalText(),n=document.getElementById('jNote');try{await navigator.clipboard.writeText(txt);n.textContent='Journal copied. Paste it into your assignment.';}catch(e){const ta=document.createElement('textarea');ta.className='copybox';ta.rows=8;ta.readOnly=true;ta.value=txt;const o=document.getElementById('jOut');o.innerHTML='';o.appendChild(ta);ta.select();n.textContent='Copying was blocked here. The text is selected below, so copy it with Ctrl+C or Cmd+C.';}}
+
+// ================= TITLE & CHAPTER JUMP =================
+function closeAll(){['jWin','wWin','titleWin'].forEach(id=>document.getElementById(id).hidden=true);if(!st.dlg)st.open=null;cv.focus({preventScroll:true});}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeAll);
+function startAt(n){G=fresh();for(let c=1;c<n;c++){CH[c].beats.forEach(b=>{(b.ev||[]).forEach(id=>G.ev[id]=true);[b.claim,b.claim2].forEach(x=>{if(x)G.claims[x]={found:true,verdict:null,pins:[],ok:false};});if(b.item&&!G.items.includes(b.item))G.items.push(b.item);if(b.motif)G.motifs[b.id]={m:b.motif.m,ch:c,line:b.motif.line,themes:b.motif.themes,ok:null};});
+  G.sums[c]={text:CH[c].sum.keys.join(' ')+' '+CH[c].sum.rel.o[CH[c].sum.rel.a],skipped:true};}
+  G.ch=n;G.beat=0;save();begin();}
+function begin(){document.getElementById('titleWin').hidden=true;st.open=null;st.px=G.x||32;st.py=G.y||144;buildScreen();updateObjective();cv.focus({preventScroll:true});
+  if(G.ch===1&&G.beat===0&&!G.intro){G.intro=true;save();G.ev.e1=true;dialog([{who:'NICK',text:'In my younger and more vulnerable years my father gave me some advice that I\'ve been turning over in my mind ever since.'},{who:'NICK',text:'"Whenever you feel like criticizing any one," he told me, "just remember that all the people in this world haven\'t had the advantages that you\'ve had."'},{who:'NICK',text:'Now it is 1922. I have rented a small house in West Egg, beside an enormous mansion. Across the bay, in East Egg, lives my cousin Daisy.'},{who:'NEXT',text:CH[1].beats[0].hint}]);}}
+function showTitle(){st.open='title';document.getElementById('titleWin').hidden=false;const saved=load();const b=document.getElementById('tBtns');b.innerHTML='';
+  const mk=(l,cls,fn)=>{const x=document.createElement('button');x.type='button';x.className='pbtn'+(cls?' '+cls:'');x.textContent=l;x.onclick=fn;b.appendChild(x);};
+  if(saved)mk(`Continue (${saved.ch<=9?CH[saved.ch].title:'finished'})`,'gold',()=>{G=saved;begin();});
+  mk('New game from Chapter I',saved?'':'gold',()=>{G=fresh();save();begin();});
+  mk('Start at a later chapter','',()=>{document.getElementById('tJump').hidden=false;});
+  const chs=document.getElementById('tChs');chs.innerHTML='';for(let n=2;n<=9;n++){const x=document.createElement('button');x.type='button';x.className='pbtn';x.textContent=CH[n].title.replace('Chapter ','Ch. ');x.onclick=()=>startAt(n);chs.appendChild(x);}
+  setTimeout(()=>{const f=b.querySelector('button');if(f)f.focus({preventScroll:true});},30);}
+document.getElementById('btnTitle').onclick=()=>{if(st.dlg)return;closeAll();showTitle();};
+document.getElementById('btnJournal').onclick=()=>{if(st.dlg||st.open==='title')return;closeAll();openJournal();};
+const sb=document.getElementById('btnSound');sb.onclick=()=>{st.sound=!st.sound;sb.textContent=st.sound?'Sound on':'Sound off';sb.setAttribute('aria-pressed',String(st.sound));if(st.sound)blip(660,.08);cv.focus({preventScroll:true});};
+
+// ================= INPUT =================
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(st.open==='journal'||st.open==='write'){closeAll();e.preventDefault();}return;}
+  if(st.open==='journal'||st.open==='write'||st.open==='title')return;
+  if(st.dlg){if(['KeyE','Enter','Space'].includes(e.code)){e.preventDefault();advance();}else if(/^Digit[1-3]$/.test(e.code)){const bt=dOpts.querySelectorAll('.opt')[+e.code.slice(5)-1];if(bt){e.preventDefault();bt.click();}}return;}
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+  keys[e.code]=true;
+  if(e.code==='KeyE'||e.code==='Enter')act();
+  if(e.code==='Space')swing();
+  if(e.code==='KeyJ')openJournal();
+});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+cv.addEventListener('pointerdown',()=>{if(st.dlg)advance();cv.focus({preventScroll:true});});
+document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;const on=e=>{e.preventDefault();if(k==='act'){act();return;}if(k==='pen'){swing();return;}keys[k]=true;};const off=()=>{if(k!=='act'&&k!=='pen')keys[k]=false;};
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);});
+setInterval(()=>{if(!st.open&&!st.trans){G.x=st.px;G.y=st.py;save();}},5000);
+
+// ================= LOOP =================
+st.px=32;st.py=144;buildScreen();updateObjective();
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);render(now/1000);requestAnimationFrame(frame);}
+showTitle();requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
